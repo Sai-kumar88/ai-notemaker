@@ -1,0 +1,26 @@
+version: "3.8"
+
+services:
+  notemaker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: notemaker-ai
+    restart: unless-stopped
+    ports:
+      - "5012:5012"
+    env_file:
+      - .env
+    environment:
+      - SERVER_HOST=0.0.0.0
+      - SERVER_PORT=5012
+      - ENVIRONMENT=production
+    volumes:
+      # Persist user uploads across container rebuilds
+      - ./uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:5012/api/v1/notes/info"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

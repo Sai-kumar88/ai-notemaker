@@ -1,0 +1,43 @@
+# Git and version control
+.git
+.gitignore
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Python cache & compiled bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Secrets and environment variables (should be mounted or passed at runtime)
+.env
+.env.*
+*.env
+
+# Testing & coverage
+.pytest_cache/
+.coverage
+htmlcov/
+tests/
+
+# Temporary and local artifacts
+uploads/*
+!uploads/.gitkeep
+scratch/
+*.log
+*.pdf
+*.png
+
+# IDEs & Editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
