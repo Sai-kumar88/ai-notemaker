@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NoteMaker AI - Faithful Document Summarizer</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <!-- Marked.js for Markdown rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <!-- html2pdf.js for client-side PDF export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="background-glow top-left"></div>
+  <div class="background-glow bottom-right"></div>
+
+  <!-- Header -->
+  <header class="navbar">
+    <div class="nav-container">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <span class="brand-title">NoteMaker<span class="gradient-text">AI</span></span>
+          <span class="brand-badge">Zero Hallucination</span>
+        </div>
+      </div>
+
+      <div class="header-status">
+        <span class="status-indicator live"></span>
+        <span class="system-status-text">System Active</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="main-layout">
+    
+    <!-- Hero Section -->
+    <section class="hero-section">
+      <h1 class="hero-title">
+        Document Notes & <span class="gradient-text">Key Points Summarizer</span>
+      </h1>
+      <p class="hero-subtitle">
+        Upload your PDF or DOCX file. Get comprehensive, strictly grounded study notes and key points with zero hallucination.
+      </p>
+    </section>
+
+    <!-- Workspace Grid -->
+    <div class="workspace-grid">
+      
+      <!-- Left Column: Input Controls -->
+      <section class="panel control-panel">
+        <div class="panel-header">
+          <div class="step-num">1</div>
+          <h2>Document & Scope</h2>
+        </div>
+
+        <!-- Drag & Drop Zone -->
+        <div class="drop-zone" id="dropZone">
+          <input type="file" id="fileInput" accept=".pdf,.docx" class="file-input-hidden" />
+          <div class="drop-zone-content" id="dropZonePrompt">
+            <div class="upload-icon-circle">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+            </div>
+            <p class="drop-text-primary">Click or drag & drop document here</p>
+            <p class="drop-text-secondary">Supports <strong>PDF</strong> and <strong>DOCX</strong> (up to 50MB)</p>
+          </div>
+
+          <!-- File Selected Preview -->
+          <div class="file-card hidden" id="fileCard">
+            <div class="file-icon" id="fileCardIcon">PDF</div>
+            <div class="file-details">
+              <span class="file-name" id="fileNameDisplay">document.pdf</span>
+              <span class="file-meta" id="fileMetaDisplay">1.2 MB</span>
+            </div>
+            <button type="button" class="btn-icon remove-file-btn" id="removeFileBtn" title="Remove file">✕</button>
+          </div>
+        </div>
+
+        <!-- Scope Selection (Full Document vs Chapter Numbers) -->
+        <div class="scope-box">
+          <label class="section-label">Summarization Scope</label>
+          <div class="scope-tabs">
+            <button type="button" class="tab-btn active" id="tabFullDoc">
+              <span class="tab-icon">📖</span>
+              <span>All Chapters (Full Document)</span>
+            </button>
+            <button type="button" class="tab-btn" id="tabChapters">
+              <span class="tab-icon">🔢</span>
+              <span>Specific Chapter Numbers</span>
+            </button>
+          </div>
+
+          <!-- Simple Chapter Number Input (Visible when Specific Chapters is clicked) -->
+          <div class="chapters-container hidden" id="chaptersContainer">
+            <label for="manualChapterInput" class="sub-label">Enter Chapter Number(s):</label>
+            <input 
+              type="text" 
+              inputmode="numeric"
+              id="manualChapterInput" 
+              class="input-text" 
+              placeholder="e.g. 1 or 1, 2" 
+            />
+            <p class="input-helper">
+              Provide chapter numbers separated by commas (e.g. <code>1, 2</code>). If left empty, all chapters are summarized.
+            </p>
+          </div>
+        </div>
+
+        <!-- Summarize Action Button -->
+        <button type="button" class="btn-primary" id="btnSummarize" disabled>
+          <span class="btn-text">Generate Notes & Summary</span>
+          <svg class="btn-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+          </svg>
+        </button>
+
+        <!-- Status / Error Alert -->
+        <div class="alert-box hidden" id="alertBox">
+          <div class="alert-icon" id="alertIcon">⚠️</div>
+          <div class="alert-content">
+            <h4 id="alertTitle">Error</h4>
+            <p id="alertMessage">Something went wrong.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Column: Notes Output -->
+      <section class="panel output-panel">
+        <div class="panel-header output-header">
+          <div class="header-left">
+            <div class="step-num">2</div>
+            <h2>Structured Summary & Notes</h2>
+          </div>
+          <div class="header-actions hidden" id="outputActions">
+            <button type="button" class="btn-secondary" id="btnCopy" title="Copy to clipboard">
+              <span>📋 Copy</span>
+            </button>
+            <button type="button" class="btn-secondary" id="btnPdf" title="Download styled PDF summary">
+              <span>📥 Download PDF</span>
+            </button>
+            <button type="button" class="btn-secondary" id="btnDownload" title="Download Markdown format">
+              <span>💾 Download .md</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Empty State -->
+        <div class="empty-state" id="emptyState">
+          <div class="empty-icon">📝</div>
+          <h3>No Notes Generated Yet</h3>
+          <p>Upload your document and click <strong>Generate Notes & Summary</strong>. It will extract and structure clear key points, definitions, and takeaways.</p>
+        </div>
+
+        <!-- Loading State -->
+        <div class="loading-state hidden" id="loadingState">
+          <div class="pulsing-halo">
+            <div class="spinner-large"></div>
+          </div>
+          <h3 class="loading-title" id="loadingStageTitle">Extracting Document Text...</h3>
+          <p class="loading-desc" id="loadingStageDesc">Strictly extracting and structuring notes directly from the source text.</p>
+          <div class="loading-progress-bar">
+            <div class="loading-progress-fill"></div>
+          </div>
+        </div>
+
+        <!-- Rendered Notes Container -->
+        <div class="notes-result hidden" id="notesResult">
+          <!-- Metadata Pill Bar (Clean, no backend leaks) -->
+          <div class="meta-ribbon" id="metaRibbon">
+            <div class="meta-tag"><span class="meta-label">File:</span> <span id="metaFilename">-</span></div>
+            <div class="meta-tag"><span class="meta-label">Total Words:</span> <span id="metaWords">-</span></div>
+            <div class="meta-tag highlight"><span class="meta-label">Scope:</span> <span id="metaScope">-</span></div>
+          </div>
+
+          <!-- Printable Container for PDF Export -->
+          <div class="printable-wrapper" id="printableWrapper">
+            <div class="pdf-export-header hidden" id="pdfHeader">
+              <h1 id="pdfDocTitle">Document Study Notes</h1>
+              <p id="pdfDocMeta">Generated by NoteMaker AI</p>
+              <hr class="pdf-divider" />
+            </div>
+            <!-- Markdown Content Body -->
+            <div class="markdown-body" id="markdownOutput"></div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- Toast Notification -->
+  <div class="toast hidden" id="toast">Copied to clipboard!</div>
+
+  <script src="/static/app.js?v=20260928"></script>
+</body>
+</html>

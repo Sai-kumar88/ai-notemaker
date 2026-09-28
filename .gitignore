@@ -1,0 +1,61 @@
+# Environment & Secrets (NEVER commit API keys or environment variables)
+.env
+.env.*
+*.env
+!.env.example
+
+# Python virtual environment
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+nosetests.xml
+coverage.xml
+*.cover
+
+# Uploaded documents (keep folder via .gitkeep, ignore uploaded files)
+uploads/*
+!uploads/.gitkeep
+
+# IDEs & Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+
+# Operating System files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Logs & temporary files
+*.log
+scratch/
+test_*.pdf
+test_*.png
+layout_*.png
+debug_*.png
+debug_*.pdf
+page_*.png
