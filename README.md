@@ -158,6 +158,49 @@ python run.py
 uvicorn app.main:app --host 127.0.0.1 --port 8052 --reload
 ```
 
+###
+ Method 3: Using Docker Compose (Recommended for Containers)
+
+Ensure Docker Desktop is running, then run:
+
+```powershell
+# 1. Build and start container in the background
+docker compose up -d --build
+
+# 2. View real-time logs
+docker compose logs -f
+
+# 3. Check health and container status
+docker compose ps
+
+# 4. Stop the container
+docker compose down
+```
+
+### Method 4: Using Docker CLI Directly
+
+If you prefer using pure Docker commands without Docker Compose:
+
+```powershell
+# 1. Build the Docker image
+docker build -t notemaker-ai .
+
+# 2. Run the container with your .env and volume mounted
+docker run -d `
+  --name notemaker-ai `
+  -p 8052:8052 `
+  --env-file .env `
+  -v ${PWD}/uploads:/app/uploads `
+  notemaker-ai
+
+# 3. View logs
+docker logs -f notemaker-ai
+
+# 4. Stop and remove the container
+docker stop notemaker-ai
+docker rm notemaker-ai
+```
+
 ---
 
 ## 🌐 Endpoints & API Documentation

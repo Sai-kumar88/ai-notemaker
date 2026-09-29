@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.routes.notes import router as notes_router
 from app.schemas.note_schema import ErrorResponse, ErrorDetail
-
+ 
 # Configure application logging
 logging.basicConfig(
     level=getattr(logging, settings.log_level.upper(), logging.INFO),
