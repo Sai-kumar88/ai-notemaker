@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import re
 from pathlib import Path
 from typing import List, Optional
 from app.config import settings
@@ -92,7 +93,8 @@ class SummaryService:
                         system_prompt=CHUNK_SUMMARY_SYSTEM_PROMPT,
                         user_prompt=build_chunk_summary_prompt(chunk, idx, total_chunks)
                     )
-                    return idx, summary
+                    cleaned_chunk = re.sub(r"<think>.*?</think>", "", summary, flags=re.DOTALL).strip()
+                    return idx, cleaned_chunk if cleaned_chunk else summary
 
             # Run chunk summarization tasks concurrently
             tasks = [process_single_chunk(idx, chunk) for idx, chunk in enumerate(chunks, start=1)]
@@ -110,7 +112,11 @@ class SummaryService:
                 user_prompt=build_combine_prompt(chunk_summaries)
             )
 
-        # Step 5: Construct Pydantic-validated response
+        # Step 5: Clean thinking tags (e.g., DeepSeek R1 <think>...</think>)
+        cleaned_summary = re.sub(r"<think>.*?</think>", "", summary_text, flags=re.DOTALL).strip()
+        final_summary = cleaned_summary if cleaned_summary else summary_text
+
+        # Step 6: Construct Pydantic-validated response
         metadata = SummaryMetadata(
             filename=original_filename,
             file_type=document.file_type,
@@ -128,6 +134,6 @@ class SummaryService:
 
         return SummaryResponse(
             success=True,
-            summary=summary_text,
+            summary=final_summary,
             metadata=metadata
         )

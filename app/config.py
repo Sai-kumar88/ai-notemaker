@@ -24,7 +24,7 @@ class Settings(BaseSettings):
 
     # NVIDIA API configuration
     nvidia_api_key: str = Field(default="", description="NVIDIA NIM API key")
-    nvidia_model: str = Field(default="deepseek-ai/deepseek-v3", description="Active model identifier")
+    nvidia_model: str = Field(default="meta/llama-3.2-11b-vision-instruct", description="Active model identifier")
     nvidia_base_url: str = Field(default="https://integrate.api.nvidia.com/v1", description="NVIDIA NIM API base URL")
     nvidia_temperature: float = Field(default=0.3, ge=0.0, le=2.0, description="Sampling temperature for summarization")
     nvidia_max_tokens: int = Field(default=4096, ge=1, le=16384, description="Max token limit per completion")

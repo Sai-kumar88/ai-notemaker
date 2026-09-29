@@ -1,6 +1,6 @@
 # Note Maker - Production AI Document Summarizer Backend
 
-A production-ready FastAPI backend designed to process **PDF** and **DOCX** documents and generate strictly faithful, structured study notes using **NVIDIA NIM API (`deepseek-ai/deepseek-v3`)**.
+A production-ready FastAPI backend designed to process **PDF** and **DOCX** documents and generate strictly faithful, structured study notes using **NVIDIA NIM API (`meta/llama-3.2-11b-vision-instruct`)**.
 
 ---
 
@@ -30,7 +30,7 @@ Extract only those chapters     Full document text
        If large → split into chunks
                    ↓
           NVIDIA NIM API Execution:
-     Model: deepseek-ai/deepseek-v3
+     Model: meta/llama-3.2-11b-vision-instruct
                    ↓
       Source-only structured notes
                    ↓
@@ -127,7 +127,7 @@ UPLOAD_BUFFER_BYTES=1048576
 | Variable | Default Value | Description |
 | :--- | :--- | :--- |
 | `NVIDIA_API_KEY` | *(Required)* | NVIDIA API authentication key for inference. |
-| `NVIDIA_MODEL` | `deepseek-ai/deepseek-v3` | High-performance model hosted on NVIDIA NIM. |
+| `NVIDIA_MODEL` | `meta/llama-3.2-11b-vision-instruct` | High-performance model hosted on NVIDIA NIM. |
 | `NVIDIA_BASE_URL` | `https://integrate.api.nvidia.com/v1` | Base URL for the NVIDIA API endpoint. |
 | `NVIDIA_TEMPERATURE` | `0.1` | Low temperature ensures factual faithfulness and prevents hallucination. |
 | `NVIDIA_MAX_TOKENS` | `4096` | Maximum token length for the summary response. |
