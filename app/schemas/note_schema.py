@@ -1,7 +1,6 @@
 from typing import List, Optional, Any, Dict
 from pydantic import BaseModel, Field
 
-
 class DetectedChapter(BaseModel):
     """Schema representing an identified chapter or section within a document."""
     identifier: str = Field(..., description="Normalized chapter identifier, e.g. '1', '2', 'IV'")
@@ -10,14 +9,12 @@ class DetectedChapter(BaseModel):
     word_count: int = Field(0, description="Estimated words in chapter")
     character_count: int = Field(0, description="Total characters in chapter")
 
-
 class DetectChaptersResponse(BaseModel):
     """Schema for document chapter detection."""
     success: bool = True
     filename: str
     total_chapters_detected: int
     chapters: List[DetectedChapter] = []
-
 
 class SummaryMetadata(BaseModel):
     """Execution and processing metadata for the generated summary."""
@@ -34,13 +31,11 @@ class SummaryMetadata(BaseModel):
     provider_used: str
     is_full_document: bool
 
-
 class SummaryResponse(BaseModel):
     """Schema for document summarization response."""
     success: bool = True
     summary: str
     metadata: SummaryMetadata
-
 
 class ErrorDetail(BaseModel):
     """Detailed error object conforming to API standard."""
@@ -48,12 +43,10 @@ class ErrorDetail(BaseModel):
     message: str
     details: Optional[Any] = None
 
-
 class ErrorResponse(BaseModel):
     """Standardized API error response format."""
     success: bool = False
     error: ErrorDetail
-
 
 class PdfExportRequest(BaseModel):
     """Schema for server-side vector PDF generation."""

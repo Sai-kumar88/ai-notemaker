@@ -33,7 +33,6 @@ IGNORED_CHAPTER_INPUTS = frozenset({
     "string", "none", "null", "all", "full", "[]", '""', "''", "-", "undefined"
 })
 
-
 def parse_chapters_input(chapters_raw: Optional[Union[str, List[str]]]) -> Optional[List[str]]:
     """
     Parses optional chapter input from various frontend formats.
@@ -73,7 +72,6 @@ def parse_chapters_input(chapters_raw: Optional[Union[str, List[str]]]) -> Optio
         if c.strip() and c.strip().lower() not in IGNORED_CHAPTER_INPUTS
     ]
     return items if items else None
-
 
 @router.post(
     "/summarize",
@@ -179,7 +177,6 @@ async def summarize_document(
             except Exception as clean_err:
                 logger.warning("Failed to clean up temporary file %s: %s", temp_path, clean_err)
 
-
 @router.post(
     "/detect-chapters",
     response_model=DetectChaptersResponse,
@@ -236,7 +233,6 @@ async def detect_document_chapters(
                 temp_path.unlink()
             except Exception as clean_err:
                 logger.warning("Failed to clean up temporary file %s: %s", temp_path, clean_err)
-
 
 @router.get(
     "/info",

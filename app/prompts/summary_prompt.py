@@ -57,7 +57,6 @@ CRITICAL INSTRUCTIONS:
    - ## 💡 Crucial Takeaways & Quick Review Points
 """
 
-
 def build_direct_summary_prompt(document_text: str, context_label: str = "Document") -> str:
     """
     Builds the user prompt for single-pass summarization.
@@ -74,7 +73,6 @@ Remember the critical rule: If information is not in the text between <<<BEGIN S
 Provide deep, well-explained notes rather than superficial bullet points.
 """
 
-
 def build_chunk_summary_prompt(chunk_text: str, chunk_index: int, total_chunks: int) -> str:
     """
     Builds the user prompt for a single chunk of a large document.
@@ -89,7 +87,6 @@ Instructions:
 Summarize the key information, arguments, definitions, and facts present in this chunk in detail.
 Do NOT invent or extrapolate anything beyond this chunk.
 """
-
 
 def build_combine_prompt(chunk_summaries: list[str]) -> str:
     """

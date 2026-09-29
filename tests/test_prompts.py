@@ -6,7 +6,6 @@ from app.prompts.summary_prompt import (
     build_chunk_summary_prompt
 )
 
-
 def test_faithful_summary_prompt_constraints():
     # Prompt must explicitly prohibit hallucination, external knowledge, and inventing information
     assert "ABSOLUTE GROUNDING" in FAITHFUL_SUMMARY_SYSTEM_PROMPT
@@ -14,11 +13,9 @@ def test_faithful_summary_prompt_constraints():
     assert "STRICTLY AND EXCLUSIVELY" in FAITHFUL_SUMMARY_SYSTEM_PROMPT
     assert "PRESERVE ORIGINAL TERMINOLOGY" in FAITHFUL_SUMMARY_SYSTEM_PROMPT
 
-
 def test_chunk_prompts_constraints():
     assert "STRICTLY" in CHUNK_SUMMARY_SYSTEM_PROMPT
     assert "Do NOT introduce external knowledge" in CHUNK_SUMMARY_SYSTEM_PROMPT
-
 
 def test_build_direct_summary_prompt():
     text = "Photosynthesis converts light into chemical energy."

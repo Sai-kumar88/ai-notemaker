@@ -5,13 +5,11 @@ from unittest.mock import AsyncMock, patch
 from fastapi.testclient import TestClient
 import docx
 from pypdf import PdfWriter
-
 from app.main import app
 from app.config import settings
 from app.services.nvidia_service import nvidia_service
 
 client = TestClient(app)
-
 
 def generate_test_docx() -> io.BytesIO:
     """Generates an in-memory DOCX with chapters for testing."""
@@ -34,7 +32,6 @@ def generate_test_docx() -> io.BytesIO:
     buffer.seek(0)
     return buffer
 
-
 def test_health_check():
     response = client.get("/api/v1/health")
     assert response.status_code == 200
@@ -42,14 +39,11 @@ def test_health_check():
     assert data["status"] == "healthy"
     assert "model" in data
 
-
 def test_root_serves_frontend_ui():
     response = client.get("/")
     assert response.status_code == 200
     assert "text/html" in response.headers.get("content-type", "")
     assert "NoteMaker" in response.text
-
-
 
 def test_detect_chapters_endpoint():
     docx_file = generate_test_docx()

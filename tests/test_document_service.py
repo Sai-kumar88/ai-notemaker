@@ -11,7 +11,6 @@ from app.services.document_service import (
 )
 from app.config import settings
 
-
 def create_in_memory_pdf(text: str) -> io.BytesIO:
     """Creates a minimal valid PDF containing text using pypdf."""
     from pypdf.generic import DictionaryObject, NameObject, ArrayObject, DecodedStreamObject, TextStringObject
@@ -25,7 +24,6 @@ def create_in_memory_pdf(text: str) -> io.BytesIO:
     buffer.seek(0)
     return buffer
 
-
 def test_validate_file_extensions():
     assert DocumentService.validate_file("document.pdf", 1024) == ".pdf"
     assert DocumentService.validate_file("document.docx", 1024) == ".docx"
@@ -37,7 +35,6 @@ def test_validate_file_extensions():
     with pytest.raises(UnsupportedFileTypeError):
         DocumentService.validate_file("document.exe", 1024)
 
-
 def test_validate_file_size_limit():
     max_bytes = settings.max_file_size_bytes
     # Within limit
@@ -46,7 +43,6 @@ def test_validate_file_size_limit():
     # Exceeds limit
     with pytest.raises(DocumentExtractionError):
         DocumentService.validate_file("doc.pdf", max_bytes + 1)
-
 
 def test_extract_from_docx(tmp_path: Path):
     doc = docx.Document()

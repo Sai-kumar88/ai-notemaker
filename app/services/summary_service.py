@@ -2,7 +2,6 @@ import asyncio
 import logging
 from pathlib import Path
 from typing import List, Optional
-
 from app.config import settings
 from app.prompts.summary_prompt import (
     FAITHFUL_SUMMARY_SYSTEM_PROMPT,
@@ -19,7 +18,6 @@ from app.services.chunking_service import ChunkingService
 from app.services.nvidia_service import nvidia_service
 
 logger = logging.getLogger(__name__)
-
 
 class SummaryService:
     """

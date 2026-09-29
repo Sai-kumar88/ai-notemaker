@@ -7,22 +7,18 @@ import docx
 
 from app.config import settings
 
-
 class DocumentExtractionError(Exception):
     """Raised when text cannot be extracted from the document."""
     pass
-
 
 class UnsupportedFileTypeError(Exception):
     """Raised when uploaded file type is not supported."""
     pass
 
-
 class DocumentPage:
     def __init__(self, page_number: int, text: str):
         self.page_number = page_number
         self.text = text
-
 
 class ExtractedDocument:
     def __init__(self, filename: str, file_type: str, full_text: str, pages: List[DocumentPage]):
@@ -32,7 +28,6 @@ class ExtractedDocument:
         self.pages = pages
         self.word_count = len(full_text.split())
         self.char_count = len(full_text)
-
 
 class DocumentService:
     @staticmethod

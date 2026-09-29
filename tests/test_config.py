@@ -1,7 +1,6 @@
 import pytest
 from app.config import Settings
 
-
 def test_settings_defaults():
     settings = Settings(
         nvidia_api_key="test_key",
@@ -19,12 +18,10 @@ def test_settings_defaults():
     assert settings.chunk_size_chars == 5000
     assert settings.max_chunks == 15
 
-
 def test_settings_case_insensitive_extensions():
     settings = Settings(allowed_extensions=[".PDF", ".Docx"])
     assert ".pdf" in settings.allowed_extensions_set
     assert ".docx" in settings.allowed_extensions_set
-
 
 def test_server_and_buffer_settings():
     settings = Settings(

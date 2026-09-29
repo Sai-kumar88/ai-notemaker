@@ -1,7 +1,6 @@
 import pymupdf
 from app.services.pdf_export_service import PdfExportService
 
-
 def test_pdf_export_service_basic():
     html = """
     <h2>Test Section</h2>
@@ -25,7 +24,6 @@ def test_pdf_export_service_basic():
     assert "AI STUDY NOTES & GUIDE" in text
     assert "Test Section" in text
     assert "chemical reactions" in text
-
 
 def test_pdf_export_service_page_break_no_word_slice():
     # Generate 50 bullet items to guarantee multi-page layout

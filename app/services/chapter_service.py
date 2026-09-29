@@ -3,7 +3,6 @@ from typing import List, Dict, Optional, Tuple, Any
 from app.services.document_service import ExtractedDocument
 from app.schemas.note_schema import DetectedChapter
 
-
 class ChapterNotFoundError(Exception):
     """Raised when one or more requested chapters cannot be found in the document."""
     def __init__(self, missing_chapters: List[str], available_chapters: List[str], message: Optional[str] = None):
@@ -12,7 +11,6 @@ class ChapterNotFoundError(Exception):
         clean_nums = ", ".join(str(c) for c in missing_chapters)
         msg = message or f"Requested chapter(s) {clean_nums} could not be found in the document."
         super().__init__(msg)
-
 
 class ChapterService:
     # Generic regex patterns to identify chapter/section headings across varied documents.

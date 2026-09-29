@@ -4,7 +4,6 @@ from typing import Optional, List, Dict, Any
 from bs4 import BeautifulSoup, Tag
 import pymupdf
 
-
 class PdfExportService:
     """
     High-fidelity, vector-based PDF generator using PyMuPDF (fitz.Story).

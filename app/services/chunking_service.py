@@ -5,11 +5,9 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-
 class ChunkingError(Exception):
     """Raised when text cannot be safely chunked."""
     pass
-
 
 class ChunkingService:
     """

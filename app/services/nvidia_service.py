@@ -6,21 +6,17 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-
 class NvidiaServiceError(Exception):
     """Base exception for NVIDIA NIM API interactions."""
     pass
-
 
 class NvidiaAuthError(NvidiaServiceError):
     """Raised when NVIDIA API key is invalid or unauthorized."""
     pass
 
-
 class NvidiaRateLimitError(NvidiaServiceError):
     """Raised when NVIDIA API rate limits or quota are exceeded."""
     pass
-
 
 class NvidiaService:
     """

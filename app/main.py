@@ -16,7 +16,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup: Ensure upload directory exists
@@ -29,7 +28,6 @@ async def lifespan(app: FastAPI):
     from app.services.nvidia_service import nvidia_service
     await nvidia_service.close()
     logger.info("Application shutting down.")
-
 
 app = FastAPI(
     title=settings.project_name,
@@ -49,7 +47,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 @app.exception_handler(HTTPException)
 async def custom_http_exception_handler(request: Request, exc: HTTPException):
@@ -77,7 +74,6 @@ async def custom_http_exception_handler(request: Request, exc: HTTPException):
         content=error_response.model_dump()
     )
 
-
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception):
     """
@@ -97,14 +93,12 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
         content=error_response.model_dump()
     )
 
-
 from pathlib import Path
 
 # Mount static assets for frontend web UI
 static_dir = Path("app/static")
 if static_dir.exists():
     app.mount("/static", StaticFiles(directory="app/static"), name="static")
-
 
 @app.get("/", include_in_schema=False)
 async def root():
@@ -113,7 +107,6 @@ async def root():
     if index_file.exists():
         return FileResponse(str(index_file))
     return RedirectResponse(url="/docs")
-
 
 # Health check endpoint
 @app.get("/health", tags=["Health"])
@@ -125,7 +118,6 @@ async def health_check():
         "environment": settings.environment,
         "model": settings.nvidia_model,
     }
-
 
 # Register routes
 app.include_router(notes_router, prefix=settings.api_v1_prefix)

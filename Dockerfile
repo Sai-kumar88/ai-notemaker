@@ -8,7 +8,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    PORT=5012
+    PORT=8052
 
 # Set working directory
 WORKDIR /app
@@ -37,11 +37,11 @@ RUN useradd -u 1000 -m -s /bin/bash appuser && \
 USER appuser
 
 # Expose the application port
-EXPOSE 5012
+EXPOSE 8052
 
 # Health check to ensure service readiness
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD curl -f http://127.0.0.1:5012/api/v1/notes/info || exit 1
+    CMD curl -f http://127.0.0.1:8052/api/v1/notes/info || exit 1
 
 # Launch production server binding to 0.0.0.0
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "5012"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8052"]

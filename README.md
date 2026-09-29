@@ -1,6 +1,6 @@
 # Note Maker - Production AI Document Summarizer Backend
 
-A production-ready FastAPI backend designed to process **PDF** and **DOCX** documents and generate strictly faithful, structured study notes using **NVIDIA NIM API (`meta/llama-3.2-11b-vision-instruct`)**.
+A production-ready FastAPI backend designed to process **PDF** and **DOCX** documents and generate strictly faithful, structured study notes using **NVIDIA NIM API (`deepseek-ai/deepseek-v3`)**.
 
 ---
 
@@ -30,7 +30,7 @@ Extract only those chapters     Full document text
        If large → split into chunks
                    ↓
           NVIDIA NIM API Execution:
-     Model: meta/llama-3.2-11b-vision-instruct
+     Model: deepseek-ai/deepseek-v3
                    ↓
       Source-only structured notes
                    ↓
@@ -100,7 +100,7 @@ A `.env` file is already created in the workspace. You can configure or customiz
 ```ini
 # NVIDIA API Configuration
 NVIDIA_API_KEY=your_nvidia_api_key_here
-NVIDIA_MODEL=meta/llama-3.2-11b-vision-instruct
+NVIDIA_MODEL=deepseek-ai/deepseek-v3
 NVIDIA_BASE_URL=https://integrate.api.nvidia.com/v1
 NVIDIA_TEMPERATURE=0.1
 NVIDIA_MAX_TOKENS=4096
@@ -118,7 +118,7 @@ UPLOAD_DIR=uploads
 ENVIRONMENT=development
 LOG_LEVEL=INFO
 SERVER_HOST=127.0.0.1
-SERVER_PORT=5012
+SERVER_PORT=8052
 UPLOAD_BUFFER_BYTES=1048576
 ```
 
@@ -127,12 +127,12 @@ UPLOAD_BUFFER_BYTES=1048576
 | Variable | Default Value | Description |
 | :--- | :--- | :--- |
 | `NVIDIA_API_KEY` | *(Required)* | NVIDIA API authentication key for inference. |
-| `NVIDIA_MODEL` | `meta/llama-3.2-11b-vision-instruct` | High-performance model hosted on NVIDIA NIM. |
+| `NVIDIA_MODEL` | `deepseek-ai/deepseek-v3` | High-performance model hosted on NVIDIA NIM. |
 | `NVIDIA_BASE_URL` | `https://integrate.api.nvidia.com/v1` | Base URL for the NVIDIA API endpoint. |
 | `NVIDIA_TEMPERATURE` | `0.1` | Low temperature ensures factual faithfulness and prevents hallucination. |
 | `NVIDIA_MAX_TOKENS` | `4096` | Maximum token length for the summary response. |
 | `SERVER_HOST` | `127.0.0.1` | Host interface to bind the server. |
-| `SERVER_PORT` | `5012` | Port number to run the server on. |
+| `SERVER_PORT` | `8052` | Port number to run the server on. |
 | `MAX_FILE_SIZE_MB` | `50` | Maximum allowed upload size in megabytes. |
 | `CHUNK_SIZE_CHARS` | `12000` | Character threshold before splitting text into multi-part chunks. |
 | `CHUNK_OVERLAP_CHARS`| `1000` | Character overlap between consecutive chunks to preserve context. |
@@ -155,7 +155,7 @@ python run.py
 ### Method 2: Using `uvicorn` Directly
 
 ```powershell
-uvicorn app.main:app --host 127.0.0.1 --port 5012 --reload
+uvicorn app.main:app --host 127.0.0.1 --port 8052 --reload
 ```
 
 ---
@@ -163,9 +163,9 @@ uvicorn app.main:app --host 127.0.0.1 --port 5012 --reload
 ## 🌐 Endpoints & API Documentation
 
 Once the server is running, visit:
-- **Interactive Swagger Documentation**: [http://127.0.0.1:5012/docs](http://127.0.0.1:5012/docs)
-- **ReDoc UI**: [http://127.0.0.1:5012/redoc](http://127.0.0.1:5012/redoc)
-- **Frontend Web UI**: [http://127.0.0.1:5012/](http://127.0.0.1:5012/)
+- **Interactive Swagger Documentation**: [http://127.0.0.1:8052/docs](http://127.0.0.1:8052/docs)
+- **ReDoc UI**: [http://127.0.0.1:8052/redoc](http://127.0.0.1:8052/redoc)
+- **Frontend Web UI**: [http://127.0.0.1:8052/](http://127.0.0.1:8052/)
 
 ---
 
