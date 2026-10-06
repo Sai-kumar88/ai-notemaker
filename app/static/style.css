@@ -114,27 +114,6 @@ body {
   margin-top: 4px;
 }
 
-.banner-right {
-  display: flex;
-  align-items: center;
-}
-
-.banner-breadcrumbs {
-  font-size: 0.8rem;
-  color: #93c5fd;
-  font-weight: 500;
-}
-
-.banner-breadcrumbs span.sep {
-  margin: 0 6px;
-  color: rgba(255, 255, 255, 0.4);
-}
-
-.banner-breadcrumbs span.current {
-  color: #ffffff;
-  font-weight: 700;
-}
-
 /* ==========================================================================
    Main Content Layout
    ========================================================================== */
