@@ -3,211 +3,313 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NoteMaker AI - Faithful Document Summarizer</title>
-  <!-- Google Fonts -->
+  <title>AI Notemaker - Faithful Document Summarizer</title>
+  <!-- Google Fonts: Open Sans & Plus Jakarta Sans -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <!-- Marked.js for Markdown rendering -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <!-- html2pdf.js for client-side PDF export -->
+  <!-- html2pdf.js for client-side PDF export fallback -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <link rel="stylesheet" href="/static/style.css">
+  <script>
+    if (window.location.protocol === 'file:') {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = 'style.css';
+      document.head.appendChild(link);
+    }
+  </script>
 </head>
 <body>
-  <div class="background-glow top-left"></div>
-  <div class="background-glow bottom-right"></div>
 
-  <!-- Header -->
-  <header class="navbar">
-    <div class="nav-container">
-      <div class="brand">
-        <div class="brand-icon">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-            <polyline points="14 2 14 8 20 8"></polyline>
-            <line x1="16" y1="13" x2="8" y2="13"></line>
-            <line x1="16" y1="17" x2="8" y2="17"></line>
-            <polyline points="10 9 9 9 8 9"></polyline>
-          </svg>
+  <!-- Top Hero Banner (VTS Navy Blue with crisp enterprise styling) -->
+  <header class="app-banner">
+    <div class="banner-content">
+      <div class="banner-left">
+        <div class="banner-title-row">
+          <span class="banner-icon">📝</span>
+          <h1 class="banner-title">AI Notemaker</h1>
         </div>
-        <div class="brand-text">
-          <span class="brand-title">NoteMaker<span class="gradient-text">AI</span></span>
-          <span class="brand-badge">Zero Hallucination</span>
-        </div>
+        <p class="banner-subtitle">Summarize and create structured notes from textbooks using AI</p>
       </div>
-
-      <div class="header-status">
-        <span class="status-indicator live"></span>
-        <span class="system-status-text">System Active</span>
+      <div class="banner-right">
+        <div class="banner-breadcrumbs">
+          <span>AI Edge</span>
+          <span class="sep">&gt;</span>
+          <span>AI Tools</span>
+          <span class="sep">&gt;</span>
+          <span class="current">AI Notemaker</span>
+        </div>
       </div>
     </div>
   </header>
 
   <!-- Main Container -->
-  <main class="main-layout">
-    
-    <!-- Hero Section -->
-    <section class="hero-section">
-      <h1 class="hero-title">
-        Document Notes & <span class="gradient-text">Key Points Summarizer</span>
-      </h1>
-      <p class="hero-subtitle">
-        Upload your PDF or DOCX file. Get comprehensive, strictly grounded study notes and key points with zero hallucination.
-      </p>
-    </section>
+  <main class="vts-main">
 
-    <!-- Workspace Grid -->
-    <div class="workspace-grid">
-      
-      <!-- Left Column: Input Controls -->
-      <section class="panel control-panel">
-        <div class="panel-header">
-          <div class="step-num">1</div>
-          <h2>Document & Scope</h2>
-        </div>
+    <!-- View Navigation Tabs: Configuration vs Preview Notes -->
+    <div class="nav-tabs-wrapper">
+      <button type="button" class="view-tab-btn active" id="tabConfig">
+        <span>Configuration</span>
+      </button>
+      <button type="button" class="view-tab-btn" id="tabPreview">
+        <span>Preview Notes</span>
+      </button>
+    </div>
 
-        <!-- Drag & Drop Zone -->
-        <div class="drop-zone" id="dropZone">
-          <input type="file" id="fileInput" accept=".pdf,.docx" class="file-input-hidden" />
-          <div class="drop-zone-content" id="dropZonePrompt">
-            <div class="upload-icon-circle">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="17 8 12 3 7 8"></polyline>
-                <line x1="12" y1="3" x2="12" y2="15"></line>
+    <!-- VIEW 1: Configuration (Source Material & Notemaker Settings) -->
+    <div class="view-section active" id="configView">
+      <div class="config-grid">
+        
+        <!-- Left Card: Source Material -->
+        <section class="card-vts" id="sourceCard">
+          <div class="card-vts-header">
+            <div class="card-header-icon-title">
+              <span class="card-icon-svg">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="17 8 12 3 7 8"></polyline>
+                  <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+              </span>
+              <div>
+                <h2 class="card-title-text">Source Material</h2>
+                <p class="card-subtitle-text">Upload textbooks (PDF) to analyze.</p>
+              </div>
+            </div>
+            <button type="button" class="card-vts-collapse-btn" data-target="sourceCard" title="Collapse / Expand">−</button>
+          </div>
+
+          <div class="card-vts-body">
+            <!-- Field 1: Document Upload (Mandatory) -->
+            <div class="form-group">
+              <label class="form-group-label" for="fileInput">
+                DOCUMENT (PDF)<span class="form-required">*</span>
+              </label>
+
+              <!-- Drag & Drop / File Input Zone -->
+              <div class="drop-zone" id="dropZone">
+                <input type="file" id="fileInput" accept=".pdf,.docx" class="file-input-hidden" />
+                <div class="drop-zone-content" id="dropZonePrompt">
+                  <div class="file-picker-styled">
+                    <button type="button" class="btn-choose-file" id="btnChooseFile">Choose File</button>
+                    <span class="file-status-label" id="fileStatusLabel">No file chosen</span>
+                  </div>
+                  <p class="drop-text-hint">or drag &amp; drop document here (PDF, DOCX up to 50MB)</p>
+                </div>
+
+                <!-- File Selected Preview -->
+                <div class="file-card hidden" id="fileCard">
+                  <div class="file-icon" id="fileCardIcon">PDF</div>
+                  <div class="file-details">
+                    <span class="file-name" id="fileNameDisplay">document.pdf</span>
+                    <span class="file-meta" id="fileMetaDisplay">1.2 MB</span>
+                  </div>
+                  <button type="button" class="remove-file-btn" id="removeFileBtn" title="Remove file">✕</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Field 2: Specific Chapter (Mandatory / Optional scope) -->
+            <div class="form-group" style="margin-top: 20px;">
+              <label class="form-group-label" for="manualChapterInput">
+                SPECIFIC CHAPTER<span class="form-required">*</span>
+              </label>
+              <input 
+                type="text" 
+                inputmode="numeric"
+                id="manualChapterInput" 
+                class="input-text" 
+                placeholder="1" 
+                value="1" 
+              />
+              <p class="input-helper">Please enter chapter numbers only (e.g. 1 or 1, 2). Leave blank to summarize entire book.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Right Card: Notemaker Settings -->
+        <section class="card-vts" id="settingsCard">
+          <div class="card-vts-header">
+            <div class="card-header-icon-title">
+              <span class="card-icon-svg">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="3" width="7" height="7"></rect>
+                  <rect x="14" y="3" width="7" height="7"></rect>
+                  <rect x="14" y="14" width="7" height="7"></rect>
+                  <rect x="3" y="14" width="7" height="7"></rect>
+                </svg>
+              </span>
+              <div>
+                <h2 class="card-title-text">Notemaker Settings</h2>
+                <p class="card-subtitle-text">Define how you want your notes to be structured.</p>
+              </div>
+            </div>
+            <button type="button" class="card-vts-collapse-btn" data-target="settingsCard" title="Collapse / Expand">−</button>
+          </div>
+
+          <div class="card-vts-body">
+            
+            <!-- Option 1: Generate Summary (Mandatory Field) -->
+            <div class="setting-option-card checked" id="cardSummary">
+              <input type="checkbox" id="chkSummary" class="setting-checkbox" checked />
+              <div class="setting-option-icon">📄</div>
+              <div class="setting-option-text">
+                <div class="setting-option-title">Generate Summary</div>
+                <div class="setting-option-desc">Creates a high-level academic overview capturing the core message and primary concepts.</div>
+              </div>
+            </div>
+
+            <!-- Option 2: Generate Exhaustive Notes (Mandatory Field) -->
+            <div class="setting-option-card checked" id="cardExhaustive">
+              <input type="checkbox" id="chkExhaustive" class="setting-checkbox" checked />
+              <div class="setting-option-icon">📖</div>
+              <div class="setting-option-text">
+                <div class="setting-option-title">Generate Exhaustive Notes</div>
+                <div class="setting-option-desc">Creates deep-dive study material with exhaustive explanations and examples.</div>
+              </div>
+            </div>
+
+            <!-- Action Button: Generate -->
+            <div class="generate-btn-container">
+              <button type="button" class="btn-generate" id="btnSummarize" disabled>
+                <span>✓ Generate</span>
+              </button>
+            </div>
+
+            <!-- Status / Error Alert -->
+            <div class="alert-box hidden" id="alertBox">
+              <div class="alert-icon" id="alertIcon">⚠️</div>
+              <div class="alert-content">
+                <h4 id="alertTitle">Error</h4>
+                <p id="alertMessage">Something went wrong.</p>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+      </div>
+    </div>
+
+    <!-- VIEW 2: Preview Notes (Structured Summary & Notes Output) -->
+    <div class="view-section" id="previewView">
+      <section class="card-vts" id="outputCard">
+        <div class="card-vts-header">
+          <div class="card-header-icon-title">
+            <span class="card-icon-svg">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <polyline points="10 9 9 9 8 9"></polyline>
               </svg>
+            </span>
+            <div>
+              <h2 class="card-title-text" id="previewCardTitle">Structured Summary &amp; Exhaustive Notes</h2>
+              <p class="card-subtitle-text">Synthesized from source document with Zero Hallucination.</p>
             </div>
-            <p class="drop-text-primary">Click or drag & drop document here</p>
-            <p class="drop-text-secondary">Supports <strong>PDF</strong> and <strong>DOCX</strong> (up to 50MB)</p>
           </div>
 
-          <!-- File Selected Preview -->
-          <div class="file-card hidden" id="fileCard">
-            <div class="file-icon" id="fileCardIcon">PDF</div>
-            <div class="file-details">
-              <span class="file-name" id="fileNameDisplay">document.pdf</span>
-              <span class="file-meta" id="fileMetaDisplay">1.2 MB</span>
-            </div>
-            <button type="button" class="btn-icon remove-file-btn" id="removeFileBtn" title="Remove file">✕</button>
-          </div>
-        </div>
-
-        <!-- Scope Selection (Full Document vs Chapter Numbers) -->
-        <div class="scope-box">
-          <label class="section-label">Summarization Scope</label>
-          <div class="scope-tabs">
-            <button type="button" class="tab-btn active" id="tabFullDoc">
-              <span class="tab-icon">📖</span>
-              <span>All Chapters (Full Document)</span>
-            </button>
-            <button type="button" class="tab-btn" id="tabChapters">
-              <span class="tab-icon">🔢</span>
-              <span>Specific Chapter Numbers</span>
-            </button>
-          </div>
-
-          <!-- Simple Chapter Number Input (Visible when Specific Chapters is clicked) -->
-          <div class="chapters-container hidden" id="chaptersContainer">
-            <label for="manualChapterInput" class="sub-label">Enter Chapter Number(s):</label>
-            <input 
-              type="text" 
-              inputmode="numeric"
-              id="manualChapterInput" 
-              class="input-text" 
-              placeholder="e.g. 1 or 1, 2" 
-            />
-            <p class="input-helper">
-              Provide chapter numbers separated by commas (e.g. <code>1, 2</code>). If left empty, all chapters are summarized.
-            </p>
-          </div>
-        </div>
-
-        <!-- Summarize Action Button -->
-        <button type="button" class="btn-primary" id="btnSummarize" disabled>
-          <span class="btn-text">Generate Notes & Summary</span>
-          <svg class="btn-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="5" y1="12" x2="19" y2="12"></line>
-            <polyline points="12 5 19 12 12 19"></polyline>
-          </svg>
-        </button>
-
-        <!-- Status / Error Alert -->
-        <div class="alert-box hidden" id="alertBox">
-          <div class="alert-icon" id="alertIcon">⚠️</div>
-          <div class="alert-content">
-            <h4 id="alertTitle">Error</h4>
-            <p id="alertMessage">Something went wrong.</p>
-          </div>
-        </div>
-      </section>
-
-      <!-- Right Column: Notes Output -->
-      <section class="panel output-panel">
-        <div class="panel-header output-header">
-          <div class="header-left">
-            <div class="step-num">2</div>
-            <h2>Structured Summary & Notes</h2>
-          </div>
-          <div class="header-actions hidden" id="outputActions">
-            <button type="button" class="btn-secondary" id="btnCopy" title="Copy to clipboard">
+          <div class="report-toolbar-right hidden" id="outputActions">
+            <button type="button" class="btn-vts-secondary" id="btnCopy" title="Copy to clipboard">
               <span>📋 Copy</span>
             </button>
-            <button type="button" class="btn-secondary" id="btnPdf" title="Download styled PDF summary">
-              <span>📥 Download PDF</span>
+            <button type="button" class="btn-vts-secondary" id="btnPdf" title="Download styled PDF summary">
+              <span>📄 Export PDF</span>
             </button>
-            <button type="button" class="btn-secondary" id="btnDownload" title="Download Markdown format">
-              <span>💾 Download .md</span>
+            <button type="button" class="btn-vts-secondary" id="btnPrint" title="Print notes or Save as PDF">
+              <span>🖨️ Print</span>
             </button>
           </div>
         </div>
 
-        <!-- Empty State -->
-        <div class="empty-state" id="emptyState">
-          <div class="empty-icon">📝</div>
-          <h3>No Notes Generated Yet</h3>
-          <p>Upload your document and click <strong>Generate Notes & Summary</strong>. It will extract and structure clear key points, definitions, and takeaways.</p>
-        </div>
-
-        <!-- Loading State -->
-        <div class="loading-state hidden" id="loadingState">
-          <div class="pulsing-halo">
-            <div class="spinner-large"></div>
-          </div>
-          <h3 class="loading-title" id="loadingStageTitle">Extracting Document Text...</h3>
-          <p class="loading-desc" id="loadingStageDesc">Strictly extracting and structuring notes directly from the source text.</p>
-          <div class="loading-progress-bar">
-            <div class="loading-progress-fill"></div>
-          </div>
-        </div>
-
-        <!-- Rendered Notes Container -->
-        <div class="notes-result hidden" id="notesResult">
-          <!-- Metadata Pill Bar (Clean, no backend leaks) -->
-          <div class="meta-ribbon" id="metaRibbon">
-            <div class="meta-tag"><span class="meta-label">File:</span> <span id="metaFilename">-</span></div>
-            <div class="meta-tag"><span class="meta-label">Total Words:</span> <span id="metaWords">-</span></div>
-            <div class="meta-tag highlight"><span class="meta-label">Scope:</span> <span id="metaScope">-</span></div>
-          </div>
-
-          <!-- Printable Container for PDF Export -->
-          <div class="printable-wrapper" id="printableWrapper">
-            <div class="pdf-export-header hidden" id="pdfHeader">
-              <h1 id="pdfDocTitle">Document Study Notes</h1>
-              <p id="pdfDocMeta">Generated by NoteMaker AI</p>
-              <hr class="pdf-divider" />
+        <div class="card-vts-body">
+          
+          <!-- Metadata Ribbon -->
+          <div class="report-meta-ribbon" id="metaRibbon">
+            <div class="meta-field">
+              <span class="meta-field-label">Document:</span>
+              <span class="meta-field-value" id="metaFilename">-</span>
             </div>
-            <!-- Markdown Content Body -->
-            <div class="markdown-body" id="markdownOutput"></div>
+            <div class="meta-field">
+              <span class="meta-field-label">Total Words:</span>
+              <span class="meta-field-value" id="metaWords">-</span>
+            </div>
+            <div class="meta-field">
+              <span class="meta-field-label">Scope:</span>
+              <span class="meta-field-value" id="metaScope">-</span>
+            </div>
+            <div class="meta-field">
+              <span class="meta-field-label">Status:</span>
+              <span class="meta-field-value" style="color:var(--vts-success);">Grounded Analysis</span>
+            </div>
           </div>
+
+          <!-- Empty State -->
+          <div class="empty-state" id="emptyState">
+            <div class="empty-icon">📋</div>
+            <h3>No Notes Generated Yet</h3>
+            <p>Upload your textbook or document in the <strong>Configuration</strong> tab and click <strong>Generate</strong> to create structured study notes.</p>
+            <button type="button" class="btn-vts-secondary" id="btnGoToConfig" style="margin-top: 14px;">
+              <span>← Back to Configuration</span>
+            </button>
+          </div>
+
+          <!-- Loading State -->
+          <div class="loading-state hidden" id="loadingState">
+            <div class="spinner-enterprise"></div>
+            <h3 class="loading-title" id="loadingStageTitle">Extracting Document Text...</h3>
+            <p class="loading-desc" id="loadingStageDesc">Strictly extracting and synthesizing notes with Zero Hallucination.</p>
+            <div class="loading-progress-bar">
+              <div class="loading-progress-fill"></div>
+            </div>
+          </div>
+
+          <!-- Rendered Notes Container -->
+          <div class="notes-result hidden" id="notesResult">
+            <!-- Printable Container for PDF Export -->
+            <div class="printable-wrapper" id="printableWrapper">
+              <div class="pdf-export-header hidden" id="pdfHeader">
+                <h1 id="pdfDocTitle">Document Study Notes</h1>
+                <p id="pdfDocMeta">Generated by NoteMaker AI</p>
+                <hr class="pdf-divider" />
+              </div>
+              <!-- Markdown Content Body -->
+              <div class="markdown-body" id="markdownOutput"></div>
+            </div>
+          </div>
+
         </div>
       </section>
     </div>
+
   </main>
+
+  <!-- Footer -->
+  <footer class="vts-footer">
+    <div class="footer-left">
+      <span class="footer-brand-logo">© NoteMaker AI 2026.</span>
+      <span>All rights reserved.</span>
+    </div>
+    <div class="footer-right">
+      <span style="font-size:0.75rem; color:var(--vts-text-muted);">Faithful Study Notes</span>
+    </div>
+  </footer>
 
   <!-- Toast Notification -->
   <div class="toast hidden" id="toast">Copied to clipboard!</div>
 
-  <script src="/static/app.js?v=20260928"></script>
+  <script src="/static/app.js?v=20261006_v6"></script>
+  <script>
+    if (window.location.protocol === 'file:') {
+      const scr = document.createElement('script');
+      scr.src = 'app.js';
+      document.body.appendChild(scr);
+    }
+  </script>
 </body>
 </html>

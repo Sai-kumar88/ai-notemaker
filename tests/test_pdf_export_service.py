@@ -1,5 +1,16 @@
-import pymupdf
+import pytest
+
+try:
+    import pymupdf
+except Exception:
+    pymupdf = None
+
 from app.services.pdf_export_service import PdfExportService
+
+pytestmark = pytest.mark.skipif(
+    pymupdf is None or not PdfExportService.is_available(),
+    reason="PyMuPDF C extension not available on this environment"
+)
 
 def test_pdf_export_service_basic():
     html = """

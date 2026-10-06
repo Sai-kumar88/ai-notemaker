@@ -262,6 +262,13 @@ async def export_pdf(payload: PdfExportRequest):
     Renders formatted notes into a multi-page vector A4 PDF using PyMuPDF typography engine.
     Guarantees no broken sentences or cut words across page boundaries.
     """
+    if not PdfExportService.is_available():
+        logger.warning("PyMuPDF engine not available on this system. Client-side PDF fallback should be used.")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Server-side PDF engine (PyMuPDF) is unavailable due to missing Visual C++ runtime. Using client PDF export."
+        )
+
     try:
         pdf_bytes = PdfExportService.generate_pdf_from_html(
             html_content=payload.html,

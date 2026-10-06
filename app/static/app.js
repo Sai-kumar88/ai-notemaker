@@ -1,25 +1,34 @@
-// NoteMaker AI Frontend Logic
+// AI Notemaker - Enterprise Frontend Logic
 document.addEventListener("DOMContentLoaded", () => {
-  // Elements
+  // Elements - Tabs & Views
+  const tabConfig = document.getElementById("tabConfig");
+  const tabPreview = document.getElementById("tabPreview");
+  const configView = document.getElementById("configView");
+  const previewView = document.getElementById("previewView");
+  const btnGoToConfig = document.getElementById("btnGoToConfig");
+
+  // Elements - Source Material (Mandatory Upload & Chapter)
   const dropZone = document.getElementById("dropZone");
   const fileInput = document.getElementById("fileInput");
+  const btnChooseFile = document.getElementById("btnChooseFile");
+  const fileStatusLabel = document.getElementById("fileStatusLabel");
   const dropZonePrompt = document.getElementById("dropZonePrompt");
   const fileCard = document.getElementById("fileCard");
   const fileNameDisplay = document.getElementById("fileNameDisplay");
   const fileMetaDisplay = document.getElementById("fileMetaDisplay");
   const fileCardIcon = document.getElementById("fileCardIcon");
   const removeFileBtn = document.getElementById("removeFileBtn");
-
-  const tabFullDoc = document.getElementById("tabFullDoc");
-  const tabChapters = document.getElementById("tabChapters");
-  const chaptersContainer = document.getElementById("chaptersContainer");
   const manualChapterInput = document.getElementById("manualChapterInput");
 
+  // Elements - Notemaker Settings (Mandatory Checkbox Fields & Generate)
+  const cardSummary = document.getElementById("cardSummary");
+  const chkSummary = document.getElementById("chkSummary");
+  const cardExhaustive = document.getElementById("cardExhaustive");
+  const chkExhaustive = document.getElementById("chkExhaustive");
   const btnSummarize = document.getElementById("btnSummarize");
-  const alertBox = document.getElementById("alertBox");
-  const alertTitle = document.getElementById("alertTitle");
-  const alertMessage = document.getElementById("alertMessage");
 
+  // Elements - Output & Preview
+  const previewCardTitle = document.getElementById("previewCardTitle");
   const emptyState = document.getElementById("emptyState");
   const loadingState = document.getElementById("loadingState");
   const loadingStageTitle = document.getElementById("loadingStageTitle");
@@ -33,16 +42,88 @@ document.addEventListener("DOMContentLoaded", () => {
   const metaScope = document.getElementById("metaScope");
 
   const btnCopy = document.getElementById("btnCopy");
-  const btnDownload = document.getElementById("btnDownload");
   const btnPdf = document.getElementById("btnPdf");
+  const alertBox = document.getElementById("alertBox");
+  const alertTitle = document.getElementById("alertTitle");
+  const alertMessage = document.getElementById("alertMessage");
   const toast = document.getElementById("toast");
 
   // State
   let selectedFile = null;
   let currentRawMarkdown = "";
-  let currentScope = "full"; // "full" or "chapters"
 
-  // --- Drag & Drop Handlers ---
+  // --- View Tabs Navigation ---
+  function switchToTab(tabName) {
+    if (tabName === "config") {
+      tabConfig.classList.add("active");
+      tabPreview.classList.remove("active");
+      configView.classList.add("active");
+      previewView.classList.remove("active");
+    } else if (tabName === "preview") {
+      tabPreview.classList.add("active");
+      tabConfig.classList.remove("active");
+      previewView.classList.add("active");
+      configView.classList.remove("active");
+    }
+  }
+
+  tabConfig.addEventListener("click", () => switchToTab("config"));
+  tabPreview.addEventListener("click", () => switchToTab("preview"));
+  if (btnGoToConfig) {
+    btnGoToConfig.addEventListener("click", () => switchToTab("config"));
+  }
+
+  // --- Collapsible Cards Support ---
+  document.querySelectorAll(".card-vts-collapse-btn").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const targetId = btn.getAttribute("data-target");
+      const card = document.getElementById(targetId);
+      if (card) {
+        const isCollapsed = card.classList.toggle("collapsed");
+        btn.textContent = isCollapsed ? "+" : "−";
+      }
+    });
+  });
+
+  // --- Checkbox Option Cards Click & Toggle ---
+  function updateOptionCards() {
+    if (cardSummary && chkSummary) {
+      cardSummary.classList.toggle("checked", chkSummary.checked);
+    }
+    if (cardExhaustive && chkExhaustive) {
+      cardExhaustive.classList.toggle("checked", chkExhaustive.checked);
+    }
+  }
+
+  if (cardSummary && chkSummary) {
+    cardSummary.addEventListener("click", (e) => {
+      if (e.target !== chkSummary) {
+        chkSummary.checked = !chkSummary.checked;
+      }
+      updateOptionCards();
+    });
+    chkSummary.addEventListener("change", updateOptionCards);
+  }
+
+  if (cardExhaustive && chkExhaustive) {
+    cardExhaustive.addEventListener("click", (e) => {
+      if (e.target !== chkExhaustive) {
+        chkExhaustive.checked = !chkExhaustive.checked;
+      }
+      updateOptionCards();
+    });
+    chkExhaustive.addEventListener("change", updateOptionCards);
+  }
+
+  // --- File Upload & Drag/Drop Handlers ---
+  if (btnChooseFile) {
+    btnChooseFile.addEventListener("click", (e) => {
+      e.stopPropagation();
+      fileInput.click();
+    });
+  }
+
   dropZone.addEventListener("click", () => fileInput.click());
 
   dropZone.addEventListener("dragover", (e) => {
@@ -85,6 +166,9 @@ document.addEventListener("DOMContentLoaded", () => {
     fileNameDisplay.textContent = file.name;
     fileMetaDisplay.textContent = formatBytes(file.size);
     fileCardIcon.textContent = ext.replace(".", "").toUpperCase();
+    if (fileStatusLabel) {
+      fileStatusLabel.textContent = file.name;
+    }
 
     dropZonePrompt.classList.add("hidden");
     fileCard.classList.remove("hidden");
@@ -94,53 +178,46 @@ document.addEventListener("DOMContentLoaded", () => {
   function resetFile() {
     selectedFile = null;
     fileInput.value = "";
+    if (fileStatusLabel) {
+      fileStatusLabel.textContent = "No file chosen";
+    }
     dropZonePrompt.classList.remove("hidden");
     fileCard.classList.add("hidden");
     btnSummarize.disabled = true;
-    manualChapterInput.value = "";
     hideAlert();
   }
 
-  // --- Scope Selection ---
-  tabFullDoc.addEventListener("click", () => {
-    currentScope = "full";
-    tabFullDoc.classList.add("active");
-    tabChapters.classList.remove("active");
-    chaptersContainer.classList.add("hidden");
-    manualChapterInput.value = "";
-  });
-
-  tabChapters.addEventListener("click", () => {
-    currentScope = "chapters";
-    tabChapters.classList.add("active");
-    tabFullDoc.classList.remove("active");
-    chaptersContainer.classList.remove("hidden");
-    manualChapterInput.focus();
-  });
-
-  // --- Summarization Action ---
+  // --- Generate Action (Mandatory: Upload + Summary/Exhaustive) ---
   btnSummarize.addEventListener("click", async () => {
-    if (!selectedFile) return;
+    if (!selectedFile) {
+      showAlert("Document Required", "Please choose a document (PDF) to analyze.");
+      return;
+    }
+
+    const wantSummary = chkSummary ? chkSummary.checked : true;
+    const wantExhaustive = chkExhaustive ? chkExhaustive.checked : true;
+
+    if (!wantSummary && !wantExhaustive) {
+      showAlert("Setting Required", "Please select at least one format: Generate Summary or Generate Exhaustive Notes.");
+      return;
+    }
 
     hideAlert();
+
+    // Switch view to Preview Notes tab
+    switchToTab("preview");
     setLoading(true);
 
     const formData = new FormData();
     formData.append("file", selectedFile);
 
-    // If scope is specific chapters and user typed chapter numbers, pass them
-    if (currentScope === "chapters") {
-      const chapterVal = manualChapterInput.value.trim();
-      if (chapterVal) {
-        formData.append("chapters", chapterVal);
-      }
-      // If user selected specific chapters tab but left it blank, it omits 'chapters'
-      // and automatically summarizes all chapters!
+    const chapterVal = manualChapterInput ? manualChapterInput.value.trim() : "";
+    if (chapterVal) {
+      formData.append("chapters", chapterVal);
     }
-    // If currentScope === 'full', chapters parameter is completely omitted
 
     try {
-      updateLoadingStage("Extracting Document Text...", "Reading and analyzing text faithfully.");
+      updateLoadingStage("Extracting Document Text...", "Reading and analyzing text faithfully with Zero Hallucination.");
 
       const response = await fetch("/api/v1/notes/summarize", {
         method: "POST",
@@ -154,28 +231,47 @@ document.addEventListener("DOMContentLoaded", () => {
           result?.error?.message ||
           result?.detail?.message ||
           result?.detail ||
-          "Failed to generate summary.";
+          "Failed to generate notes.";
         throw new Error(errorMsg);
       }
 
-      displayResults(result);
+      displayResults(result, wantSummary, wantExhaustive);
     } catch (err) {
       console.error(err);
-      showAlert("Summarization Failed", err.message || "An unexpected error occurred.");
+      showAlert("Generation Failed", err.message || "An unexpected error occurred.");
       setLoading(false, false);
+      switchToTab("config");
     }
   });
 
-  function displayResults(data) {
-    currentRawMarkdown = data.summary;
+  function displayResults(data, wantSummary = true, wantExhaustive = true) {
+    let finalMarkdown = data.summary || "";
+
+    // If only Summary or only Exhaustive Notes is requested, filter sections if appropriate
+    if (wantSummary && !wantExhaustive) {
+      if (previewCardTitle) previewCardTitle.textContent = "High-Level Academic Summary";
+      // Extract Executive Summary section if present
+      const summaryMatch = finalMarkdown.match(/##\s*📌?\s*Executive Summary([\s\S]*?)(?=##|$)/i);
+      if (summaryMatch && summaryMatch[1].trim()) {
+        finalMarkdown = `# 📚 High-Level Academic Summary\n\n## 📌 Executive Summary\n${summaryMatch[1].trim()}`;
+      }
+    } else if (!wantSummary && wantExhaustive) {
+      if (previewCardTitle) previewCardTitle.textContent = "Exhaustive Deep-Dive Study Notes";
+      // Remove Executive Summary section and keep detailed notes
+      finalMarkdown = finalMarkdown.replace(/##\s*📌?\s*Executive Summary[\s\S]*?(?=##\s*🔑|##\s*📋|$)/i, "");
+    } else {
+      if (previewCardTitle) previewCardTitle.textContent = "Structured Summary & Exhaustive Notes";
+    }
+
+    currentRawMarkdown = finalMarkdown;
     setLoading(false, true);
 
     // Render markdown with Marked.js
-    markdownOutput.innerHTML = marked.parse(data.summary);
+    markdownOutput.innerHTML = marked.parse(finalMarkdown);
 
     // Populate clean metadata
     const meta = data.metadata || {};
-    metaFilename.textContent = meta.filename || "-";
+    metaFilename.textContent = meta.filename || selectedFile?.name || "-";
     metaWords.textContent = (meta.processed_words || 0).toLocaleString();
     
     if (meta.is_full_document) {
@@ -224,117 +320,28 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  btnDownload.addEventListener("click", () => {
-    if (!currentRawMarkdown) return;
-    const blob = new Blob([currentRawMarkdown], { type: "text/markdown;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    const docName = selectedFile ? selectedFile.name.replace(/\.[^/.]+$/, "") : "document";
-    a.href = url;
-    a.download = `${docName}_notes.md`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    showToast("Downloaded as Markdown!");
-  });
-
-  // --- Helper: Build Pre-Paginated PDF Document to Prevent Sentence Slicing ---
-  function buildPaginatedPdfDocument(sourceHtml, docTitle, scopeText, wordsText) {
-    // 1. Temporary measurement staging container in DOM
-    const staging = document.createElement("div");
-    staging.className = "pdf-export-container";
-    staging.style.cssText = "position:absolute; left:-9999px; top:0; width:720px; padding:24px 28px; box-sizing:border-box; background:#ffffff; font-size:13px; line-height:1.55;";
-
-    const formattedDate = new Date().toLocaleDateString(undefined, {
-      year: "numeric",
-      month: "short",
-      day: "numeric"
-    });
-
-    // Build Header
-    const headerNode = document.createElement("div");
-    headerNode.className = "pdf-header";
-    headerNode.innerHTML = `
-      <h1>AI NOTE MAKER STUDY NOTES</h1>
-    `;
-    staging.appendChild(headerNode);
-
-    // 2. Parse markdown HTML and unwrap any nested lists into standalone .pdf-item blocks
-    const tempDiv = document.createElement("div");
-    tempDiv.innerHTML = sourceHtml;
-
-    const flattenedItems = [];
-
-    Array.from(tempDiv.children).forEach(child => {
-      const tag = child.tagName.toLowerCase();
-
-      if (tag === "ul" || tag === "ol") {
-        // Break out each <li> into a standalone block so html2pdf never cuts inside a tall list
-        Array.from(child.children).forEach((li, idx) => {
-          const item = document.createElement("div");
-          item.className = "pdf-item pdf-li";
-          const bullet = tag === "ol" ? `${idx + 1}.` : "•";
-          item.innerHTML = `<span class="pdf-bullet">${bullet}</span><div class="pdf-li-content">${li.innerHTML}</div>`;
-          flattenedItems.push(item);
-          staging.appendChild(item);
-        });
-      } else if (["h1", "h2", "h3", "h4"].includes(tag)) {
-        const item = document.createElement("div");
-        item.className = `pdf-item pdf-heading pdf-${tag}`;
-        item.innerHTML = child.innerHTML;
-        flattenedItems.push(item);
-        staging.appendChild(item);
-      } else {
-        const item = document.createElement("div");
-        item.className = `pdf-item pdf-${tag}`;
-        item.innerHTML = child.innerHTML;
-        flattenedItems.push(item);
-        staging.appendChild(item);
-      }
-    });
-
-    document.body.appendChild(staging);
-
-    // 3. Measure heights and insert explicit .html2pdf__page-break elements
-    // A4 printable height budget at 720px width = ~960px safe height per page
-    const PAGE_HEIGHT_BUDGET = 950;
-    let currentHeight = headerNode.offsetHeight || 60;
-
-    const finalContainer = document.createElement("div");
-    finalContainer.className = "pdf-export-container";
-    finalContainer.style.cssText = "width:720px; padding:24px 28px; box-sizing:border-box; background:#ffffff; font-size:13px; line-height:1.55;";
-    finalContainer.appendChild(headerNode.cloneNode(true));
-
-    flattenedItems.forEach(item => {
-      const itemHeight = Math.max(item.offsetHeight, 24);
-      const isHeading = item.classList.contains("pdf-heading");
-
-      // Check if adding this item overflows the current page
-      // Also prevent leaving orphan headings near the bottom (within 100px of page bottom)
-      const wouldOverflow = (currentHeight + itemHeight > PAGE_HEIGHT_BUDGET);
-      const headingNearBottom = isHeading && (currentHeight + itemHeight + 100 > PAGE_HEIGHT_BUDGET);
-
-      if (wouldOverflow || headingNearBottom) {
-        const breakElem = document.createElement("div");
-        breakElem.className = "html2pdf__page-break";
-        finalContainer.appendChild(breakElem);
-        currentHeight = itemHeight;
-      } else {
-        currentHeight += itemHeight;
-      }
-
-      finalContainer.appendChild(item.cloneNode(true));
-    });
-
-    // Clean up staging measurement container
-    if (staging.parentNode) {
-      staging.parentNode.removeChild(staging);
+  // --- Print Header Helper ---
+  function preparePdfHeader() {
+    const docName = selectedFile ? selectedFile.name.replace(/\.[^/.]+$/, "") : "Document";
+    const pdfDocTitle = document.getElementById("pdfDocTitle");
+    const pdfDocMeta = document.getElementById("pdfDocMeta");
+    if (pdfDocTitle) pdfDocTitle.textContent = `${docName} - Study Notes`;
+    if (pdfDocMeta) {
+      pdfDocMeta.textContent = `Document: ${docName} | Scope: ${metaScope.textContent || "Full Document"} | Total Words: ${metaWords.textContent || "-"} | NoteMaker AI`;
     }
-
-    return finalContainer;
   }
 
+  // --- Print Button: Opens Browser Native Print / Save-as-PDF ---
+  const btnPrint = document.getElementById("btnPrint");
+  if (btnPrint) {
+    btnPrint.addEventListener("click", () => {
+      if (!markdownOutput.innerHTML) return;
+      preparePdfHeader();
+      window.print();
+    });
+  }
+
+  // --- Export PDF Button ---
   btnPdf.addEventListener("click", async () => {
     if (!markdownOutput.innerHTML) return;
 
@@ -342,85 +349,43 @@ document.addEventListener("DOMContentLoaded", () => {
     const originalBtnText = btnPdf.innerHTML;
 
     btnPdf.disabled = true;
-    btnPdf.innerHTML = `<span>⏳ Generating PDF...</span>`;
-    showToast("Generating high-quality PDF...");
+    btnPdf.innerHTML = `<span>⏳ Exporting PDF...</span>`;
+    showToast("Generating PDF notes...");
+
+    const printableWrapper = document.getElementById("printableWrapper") || markdownOutput;
+    const pdfHeader = document.getElementById("pdfHeader");
 
     try {
-      // 1. Primary: High-fidelity Server-side Vector PDF via PyMuPDF (Zero broken sentences)
-      const response = await fetch("/api/v1/notes/export-pdf", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          html: markdownOutput.innerHTML,
-          title: selectedFile ? selectedFile.name.replace(/\.[^/.]+$/, "") : "Document",
-          scope: metaScope.textContent || "Full Document",
-          word_count: metaWords.textContent || null
-        })
-      });
+      preparePdfHeader();
+      if (pdfHeader) pdfHeader.classList.remove("hidden");
 
-      if (response.ok) {
-        const blob = await response.blob();
-        const blobUrl = URL.createObjectURL(blob);
-        const downloadLink = document.createElement("a");
-        downloadLink.href = blobUrl;
-        downloadLink.download = "AI STUDY NOTES & GUIDE.pdf";
-        document.body.appendChild(downloadLink);
-        downloadLink.click();
-        document.body.removeChild(downloadLink);
-        URL.revokeObjectURL(blobUrl);
-        showToast("PDF downloaded successfully!");
-        btnPdf.disabled = false;
-        btnPdf.innerHTML = originalBtnText;
-        return;
-      }
-      throw new Error(`Server returned status ${response.status}`);
-    } catch (serverErr) {
-      console.warn("Server PDF export unavailable, trying client-side fallback:", serverErr);
+      // Give browser brief tick to paint header before snapshot
+      await new Promise(r => setTimeout(r, 60));
 
-      // 2. Client-side Fallback using Pre-paginated container
-      try {
-        const printableElement = buildPaginatedPdfDocument(
-          markdownOutput.innerHTML,
-          "AI STUDY NOTES & GUIDE",
-          metaScope.textContent || "Full Document",
-          metaWords.textContent || "-"
-        );
+      const opt = {
+        margin:       [12, 12, 14, 12],
+        filename:     `${docName}_notes.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          backgroundColor: '#ffffff'
+        },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+      };
 
-        printableElement.style.position = "fixed";
-        printableElement.style.left = "-9999px";
-        printableElement.style.top = "0";
-        printableElement.style.zIndex = "-999";
-        document.body.appendChild(printableElement);
-
-        const opt = {
-          margin:       [12, 12, 14, 12],
-          filename:     "AI STUDY NOTES & GUIDE.pdf",
-          image:        { type: 'jpeg', quality: 0.98 },
-          html2canvas:  {
-            scale: 2,
-            useCORS: true,
-            letterRendering: true,
-            scrollY: 0,
-            scrollX: 0,
-            windowWidth: 720
-          },
-          jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
-          pagebreak:    { mode: ['legacy'] }
-        };
-
-        await html2pdf().set(opt).from(printableElement).save();
-        showToast("PDF downloaded successfully!");
-        if (printableElement.parentNode) {
-          printableElement.parentNode.removeChild(printableElement);
-        }
-      } catch (clientErr) {
-        console.error("Client PDF generation also failed:", clientErr);
-        showToast("Opening browser print dialog...");
-        window.print();
-      } finally {
-        btnPdf.disabled = false;
-        btnPdf.innerHTML = originalBtnText;
-      }
+      await html2pdf().set(opt).from(printableWrapper).save();
+      showToast("PDF downloaded successfully!");
+    } catch (clientErr) {
+      console.error("PDF generation encountered an error:", clientErr);
+      showToast("Opening print dialog as fallback...");
+      window.print();
+    } finally {
+      if (pdfHeader) pdfHeader.classList.add("hidden");
+      btnPdf.disabled = false;
+      btnPdf.innerHTML = originalBtnText;
     }
   });
 

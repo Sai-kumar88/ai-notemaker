@@ -2,7 +2,14 @@ import io
 import re
 from typing import Optional, List, Dict, Any
 from bs4 import BeautifulSoup, Tag
-import pymupdf
+
+try:
+    import pymupdf
+except Exception as _mupdf_err:
+    pymupdf = None
+    _pymupdf_error_msg = str(_mupdf_err)
+else:
+    _pymupdf_error_msg = ""
 
 class PdfExportService:
     """
@@ -139,7 +146,17 @@ class PdfExportService:
         return blocks
 
     @classmethod
-    def _make_story(cls, content: str) -> pymupdf.Story:
+    def is_available(cls) -> bool:
+        """Returns True if PyMuPDF library is successfully loaded with required native DLLs."""
+        return pymupdf is not None
+
+    @classmethod
+    def _make_story(cls, content: str) -> Any:
+        if pymupdf is None:
+            raise RuntimeError(
+                f"PyMuPDF is unavailable ({_pymupdf_error_msg}). "
+                "Please install Microsoft Visual C++ 2015-2022 Redistributable (x64)."
+            )
         full_html = (
             f'<!DOCTYPE html><html><head><meta charset="utf-8">'
             f'<style>{cls.DEFAULT_CSS}</style></head>'
@@ -159,6 +176,13 @@ class PdfExportService:
         Renders styled HTML into a crisp, multi-page vector A4 PDF with running headers and page numbers.
         Uses discrete block-level height measurement to prevent horizontal text slicing across page breaks.
         """
+        if pymupdf is None:
+            raise RuntimeError(
+                f"PyMuPDF native extension failed to load ({_pymupdf_error_msg}). "
+                "Please install the Microsoft Visual C++ 2015-2022 Redistributable (x64) from "
+                "https://aka.ms/vs/17/release/vc_redist.x64.exe and run: pip install --force-reinstall pymupdf"
+            )
+
         clean_title = re.sub(r"[^\w\s\-\.\(\)]", "", title).strip() or "Document"
         meta_info = f"Scope: {scope or 'Full Document'}"
         if word_count:
