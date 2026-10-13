@@ -15,12 +15,23 @@ services:
       - SERVER_HOST=0.0.0.0
       - SERVER_PORT=8052
       - ENVIRONMENT=production
+      # URL prefix for reverse-proxy deployment.
+      # Set to /note-marker for https://<DOMAIN>:<PORT>/note-marker/
+      # Set to "" or "/" to run at the domain root.
+      - APPLICATION_ROOT=/note-marker
+      - WORKERS=2
+      - LOG_LEVEL=INFO
     volumes:
       # Persist user uploads across container rebuilds
       - ./uploads:/app/uploads
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://127.0.0.1:8052/api/v1/notes/info"]
+      # Tries the prefixed /health first; falls back to the bare path
+      test:
+        - "CMD-SHELL"
+        - >
+          curl -fsS http://127.0.0.1:8052/note-marker/health ||
+          curl -fsS http://127.0.0.1:8052/health || exit 1
       interval: 30s
-      timeout: 5s
+      timeout: 10s
       retries: 3
-      start_period: 10s
+      start_period: 15s

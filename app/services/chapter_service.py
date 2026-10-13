@@ -52,46 +52,82 @@ class ChapterService:
     def detect_chapters(cls, document: ExtractedDocument) -> List[Dict[str, Any]]:
         """
         Dynamically detects all chapters/sections in the document text.
+        Intelligently filters out Table of Contents (TOC) entries and index lines,
+        ensuring that substantive chapter body content is extracted rather than TOC snippets.
         Returns a list of chapter descriptors sorted by their appearance in the text.
         """
         text = document.full_text
-        detected: List[Dict[str, Any]] = []
-        seen_identifiers = set()
+        all_candidates: List[Dict[str, Any]] = []
 
+        # 1. Gather all candidate chapter headings across patterns
         for pattern in cls.CHAPTER_PATTERNS:
             for match in pattern.finditer(text):
+                raw_line = match.group(0).strip()
+
+                # Filter out obvious TOC lines ending with dot leaders or page numbers (e.g. "... 35" or ". . . 1")
+                if re.search(r"(\.{2,}|\s{4,}|\t+)\s*\d+\s*$", raw_line):
+                    continue
+
                 raw_id = match.group(1).strip()
                 norm_id = cls.normalize_identifier(raw_id)
 
-                if norm_id in seen_identifiers:
-                    continue
-
-                # Determine title
                 title_candidates = [g for g in match.groups()[1:] if g and g.strip()]
                 title = title_candidates[0].strip() if title_candidates else f"Chapter {raw_id}"
-                
-                # Determine page number if document has page segmentation
                 start_char = match.start()
                 page_num = cls._estimate_page_number(document, start_char)
 
-                detected.append({
+                all_candidates.append({
                     "raw_identifier": raw_id,
                     "normalized_identifier": norm_id,
                     "title": title,
-                    "header_line": match.group(0).strip(),
+                    "header_line": raw_line,
                     "start_char": start_char,
                     "page_number": page_num
                 })
-                seen_identifiers.add(norm_id)
 
-        # Sort detected chapters by appearance order in document
-        detected.sort(key=lambda c: c["start_char"])
+        if not all_candidates:
+            return []
 
-        # Calculate end_char and chapter text slices
-        for i in range(len(detected)):
-            current = detected[i]
-            if i + 1 < len(detected):
-                next_chapter = detected[i + 1]
+        # Sort all candidates chronologically by appearance
+        all_candidates.sort(key=lambda c: c["start_char"])
+
+        # 2. Group candidates by normalized identifier
+        from collections import defaultdict
+        by_id: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+        for cand in all_candidates:
+            by_id[cand["normalized_identifier"]].append(cand)
+
+        # 3. For any identifier appearing multiple times (e.g. in TOC and in body),
+        # select the candidate that produces the largest substantive text span.
+        chosen_candidates: List[Dict[str, Any]] = []
+        for norm_id, cand_list in by_id.items():
+            if len(cand_list) == 1:
+                chosen_candidates.append(cand_list[0])
+            else:
+                best_cand = None
+                max_span = -1
+                for cand in cand_list:
+                    # Find start of next candidate of ANY other identifier that appears after this candidate
+                    next_starts = [
+                        other["start_char"]
+                        for other in all_candidates
+                        if other["start_char"] > cand["start_char"] and other["normalized_identifier"] != norm_id
+                    ]
+                    cand_end = min(next_starts) if next_starts else len(text)
+                    span = cand_end - cand["start_char"]
+                    if span > max_span:
+                        max_span = span
+                        best_cand = cand
+                chosen_candidates.append(best_cand if best_cand else cand_list[-1])
+
+        # Sort chosen chapters by document position
+        chosen_candidates.sort(key=lambda c: c["start_char"])
+
+        # 4. Calculate final end_char and chapter text slices
+        for i in range(len(chosen_candidates)):
+            current = chosen_candidates[i]
+            if i + 1 < len(chosen_candidates):
+                next_chapter = chosen_candidates[i + 1]
                 current["end_char"] = next_chapter["start_char"]
             else:
                 current["end_char"] = len(text)
@@ -101,7 +137,7 @@ class ChapterService:
             current["word_count"] = len(chapter_content.split())
             current["character_count"] = len(chapter_content)
 
-        return detected
+        return chosen_candidates
 
     @staticmethod
     def _estimate_page_number(document: ExtractedDocument, char_offset: int) -> Optional[int]:

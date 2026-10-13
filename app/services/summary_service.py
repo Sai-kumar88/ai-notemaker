@@ -87,11 +87,15 @@ class SummaryService:
             semaphore = asyncio.Semaphore(settings.max_concurrent_chunk_requests)
 
             async def process_single_chunk(idx: int, chunk: str) -> tuple[int, str]:
+                # Slight stagger across initial batch to avoid burst concurrency 429 errors
+                if idx > 1:
+                    await asyncio.sleep(0.35 * ((idx - 1) % settings.max_concurrent_chunk_requests))
                 async with semaphore:
                     logger.info("Processing chunk %d of %d", idx, total_chunks)
                     summary = await nvidia_service.generate_chat_completion(
                         system_prompt=CHUNK_SUMMARY_SYSTEM_PROMPT,
-                        user_prompt=build_chunk_summary_prompt(chunk, idx, total_chunks)
+                        user_prompt=build_chunk_summary_prompt(chunk, idx, total_chunks),
+                        max_tokens=settings.chunk_summary_max_tokens
                     )
                     cleaned_chunk = re.sub(r"<think>.*?</think>", "", summary, flags=re.DOTALL).strip()
                     return idx, cleaned_chunk if cleaned_chunk else summary

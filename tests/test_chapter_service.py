@@ -133,3 +133,45 @@ def test_roman_numeral_and_flexible_formatting():
     extracted, chapters, is_full = ChapterService.extract_requested_content(doc, requested_chapters=["II"])
     assert "Entropy increases over time" in extracted
     assert "Matter and energy are conserved" not in extracted
+
+
+def test_table_of_contents_filtered_and_body_extracted():
+    toc_text = """
+    TABLE OF CONTENTS
+    Chapter 1: Electric Charges and Fields ................... 1
+    Chapter 2: Electrostatic Potential and Capacitance ....... 35
+    Chapter 3: Current Electricity ........................... 70
+
+    PREFACE
+    This textbook is designed for Class 12 physics students.
+
+    CHAPTER 1: ELECTRIC CHARGES AND FIELDS
+    Section 1.1 Introduction
+    Historically, amber rubbed with wool attracts objects.
+    Electric charges are of two kinds: positive and negative.
+    Like charges repel and unlike charges attract each other.
+
+    CHAPTER 2: ELECTROSTATIC POTENTIAL AND CAPACITANCE
+    Section 2.1 Introduction
+    When an external force does work in taking a body from a point to another...
+    Electrostatic potential is the work done per unit charge.
+    """
+    doc = ExtractedDocument(
+        filename="physics_textbook.pdf",
+        file_type="pdf",
+        full_text=toc_text,
+        pages=[DocumentPage(page_number=1, text=toc_text)]
+    )
+
+    detected = ChapterService.detect_chapters(doc)
+    identifiers = [c["normalized_identifier"] for c in detected]
+    assert "1" in identifiers
+    assert "2" in identifiers
+
+    # Verify that the extracted text for Chapter 1 is the actual body, NOT the TOC line
+    extracted, chapters, is_full = ChapterService.extract_requested_content(doc, requested_chapters=["1"])
+    assert "Historically, amber rubbed with wool attracts objects." in extracted
+    assert "Electric charges are of two kinds: positive and negative." in extracted
+    # Must NOT stop at the TOC line
+    assert "CHAPTER 2: ELECTROSTATIC POTENTIAL" not in extracted
+

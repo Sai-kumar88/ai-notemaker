@@ -1,6 +1,17 @@
 // AI Notemaker - Enterprise Frontend Logic
-document.addEventListener("DOMContentLoaded", () => {
-  // Elements - Tabs & Views
+function initializeApp() {
+
+  // ---------------------------------------------------------------------------
+  // API URL helper - prepends the runtime-detected base path so that fetch()
+  // calls work correctly at root ("/") and under any URL prefix ("/note-marker").
+  // window.__BASE__ is set by the inline script in index.html.
+  // ---------------------------------------------------------------------------
+  function apiUrl(path) {
+    // path must start with '/'  e.g. '/api/v1/notes/summarize'
+    var base = (typeof window.__BASE__ !== 'undefined') ? window.__BASE__ : '';
+    return base + path;
+  }
+
   const tabConfig = document.getElementById("tabConfig");
   const tabPreview = document.getElementById("tabPreview");
   const configView = document.getElementById("configView");
@@ -17,6 +28,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const fileNameDisplay = document.getElementById("fileNameDisplay");
   const fileMetaDisplay = document.getElementById("fileMetaDisplay");
   const fileCardIcon = document.getElementById("fileCardIcon");
+  const btnChangeFile = document.getElementById("btnChangeFile");
   const removeFileBtn = document.getElementById("removeFileBtn");
   const manualChapterInput = document.getElementById("manualChapterInput");
 
@@ -116,49 +128,133 @@ document.addEventListener("DOMContentLoaded", () => {
     chkExhaustive.addEventListener("change", updateOptionCards);
   }
 
-  // --- File Upload & Drag/Drop Handlers ---
-  if (btnChooseFile) {
-    btnChooseFile.addEventListener("click", (e) => {
-      e.stopPropagation();
-      fileInput.click();
+  if (manualChapterInput) {
+    manualChapterInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        btnSummarize.click();
+      }
     });
   }
 
-  dropZone.addEventListener("click", () => fileInput.click());
-
-  dropZone.addEventListener("dragover", (e) => {
-    e.preventDefault();
-    dropZone.classList.add("dragover");
+  // Prevent browser window from opening dropped files in new tabs
+  ["dragenter", "dragover", "dragleave", "drop"].forEach((evt) => {
+    window.addEventListener(evt, (e) => e.preventDefault(), false);
+    document.body.addEventListener(evt, (e) => e.preventDefault(), false);
   });
 
-  dropZone.addEventListener("dragleave", () => {
-    dropZone.classList.remove("dragover");
-  });
+  // --- File Upload & Drag/Drop Handlers ---
+  // Reset fileInput value on click so choosing the same file triggers 'change' every time
+  if (fileInput) {
+    fileInput.addEventListener("click", () => {
+      fileInput.value = "";
+    });
+  }
 
-  dropZone.addEventListener("drop", (e) => {
-    e.preventDefault();
-    dropZone.classList.remove("dragover");
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      handleFileSelected(e.dataTransfer.files[0]);
+  // Keyboard accessibility for Choose File and Change labels
+  [btnChooseFile, btnChangeFile].forEach((el) => {
+    if (el) {
+      el.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          fileInput.click();
+        }
+      });
     }
   });
 
-  fileInput.addEventListener("change", (e) => {
-    if (e.target.files && e.target.files.length > 0) {
-      handleFileSelected(e.target.files[0]);
-    }
-  });
+  // Clicking anywhere on the dropZone box (outside the Choose File button) triggers file selection
+  if (dropZone) {
+    dropZone.addEventListener("click", (e) => {
+      if (e.target.closest("#btnChooseFile")) {
+        return;
+      }
+      fileInput.click();
+    });
 
-  removeFileBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    resetFile();
-  });
+    dropZone.addEventListener("keydown", (e) => {
+      if ((e.key === "Enter" || e.key === " ") && e.target === dropZone) {
+        e.preventDefault();
+        fileInput.click();
+      }
+    });
+
+    dropZone.addEventListener("dragenter", (e) => {
+      e.preventDefault();
+      dropZone.classList.add("dragover");
+    });
+
+    dropZone.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      dropZone.classList.add("dragover");
+    });
+
+    dropZone.addEventListener("dragleave", (e) => {
+      e.preventDefault();
+      dropZone.classList.remove("dragover");
+    });
+
+    dropZone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dropZone.classList.remove("dragover");
+      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        const droppedFile = e.dataTransfer.files[0];
+        try {
+          const dt = new DataTransfer();
+          dt.items.add(droppedFile);
+          fileInput.files = dt.files;
+        } catch (ex) {
+          // DataTransfer constructor fallback
+        }
+        handleFileSelected(droppedFile);
+      }
+    });
+  }
+
+  if (fileInput) {
+    fileInput.addEventListener("change", (e) => {
+      if (e.target.files && e.target.files.length > 0) {
+        handleFileSelected(e.target.files[0]);
+      }
+    });
+  }
+
+  if (removeFileBtn) {
+    removeFileBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      resetFile();
+    });
+  }
+
+  const btnRetryConfig = document.getElementById("btnRetryConfig");
+  if (btnRetryConfig) {
+    btnRetryConfig.addEventListener("click", () => {
+      switchToTab("config");
+    });
+  }
 
   function handleFileSelected(file) {
+    if (!file) return;
     hideAlert();
-    const ext = "." + file.name.split(".").pop().toLowerCase();
+    const previewErrorBox = document.getElementById("previewErrorBox");
+    if (previewErrorBox) previewErrorBox.classList.add("hidden");
+
+    const name = file.name || "";
+    const ext = "." + name.split(".").pop().toLowerCase();
     if (![".pdf", ".docx"].includes(ext)) {
-      showAlert("Invalid File Type", "Please upload a valid PDF or DOCX file.");
+      showAlert("Invalid File Type", "Please upload a valid PDF or DOCX file (.pdf or .docx).");
+      return;
+    }
+
+    if (file.size === 0) {
+      showAlert("Empty File", "The selected file is empty (0 bytes). Please choose a valid document.");
+      return;
+    }
+
+    const maxBytes = 50 * 1024 * 1024; // 50 MB
+    if (file.size > maxBytes) {
+      showAlert("File Too Large", `File size (${formatBytes(file.size)}) exceeds the maximum allowed limit of 50 MB.`);
       return;
     }
 
@@ -170,18 +266,23 @@ document.addEventListener("DOMContentLoaded", () => {
       fileStatusLabel.textContent = file.name;
     }
 
-    dropZonePrompt.classList.add("hidden");
+    // Reveal the rich file card and hide dropzone
+    dropZone.classList.add("hidden");
     fileCard.classList.remove("hidden");
     btnSummarize.disabled = false;
+    showToast(`✓ Loaded: ${file.name}`);
   }
 
   function resetFile() {
     selectedFile = null;
-    fileInput.value = "";
+    if (fileInput) {
+      fileInput.value = "";
+    }
     if (fileStatusLabel) {
       fileStatusLabel.textContent = "No file chosen";
     }
-    dropZonePrompt.classList.remove("hidden");
+    // Restore the dropzone box and hide the file card
+    dropZone.classList.remove("hidden");
     fileCard.classList.add("hidden");
     btnSummarize.disabled = true;
     hideAlert();
@@ -190,7 +291,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // --- Generate Action (Mandatory: Upload + Summary/Exhaustive) ---
   btnSummarize.addEventListener("click", async () => {
     if (!selectedFile) {
-      showAlert("Document Required", "Please choose a document (PDF) to analyze.");
+      showAlert("Document Required", "Please choose a document (PDF or DOCX) to analyze.");
       return;
     }
 
@@ -203,13 +304,15 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     hideAlert();
+    const previewErrorBox = document.getElementById("previewErrorBox");
+    if (previewErrorBox) previewErrorBox.classList.add("hidden");
 
     // Switch view to Preview Notes tab
     switchToTab("preview");
     setLoading(true);
 
     const formData = new FormData();
-    formData.append("file", selectedFile);
+    formData.append("file", selectedFile, selectedFile.name);
 
     const chapterVal = manualChapterInput ? manualChapterInput.value.trim() : "";
     if (chapterVal) {
@@ -219,7 +322,7 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       updateLoadingStage("Extracting Document Text...", "Reading and analyzing text faithfully with Zero Hallucination.");
 
-      const response = await fetch("/api/v1/notes/summarize", {
+      const response = await fetch(apiUrl("/api/v1/notes/summarize"), {
         method: "POST",
         body: formData,
       });
@@ -238,9 +341,20 @@ document.addEventListener("DOMContentLoaded", () => {
       displayResults(result, wantSummary, wantExhaustive);
     } catch (err) {
       console.error(err);
-      showAlert("Generation Failed", err.message || "An unexpected error occurred.");
+      let msg = err.message || "An unexpected error occurred.";
+      if (msg.toLowerCase().includes("chapter") && msg.toLowerCase().includes("not be found")) {
+        msg += " — Tip: Clear the 'Specific Chapter' box to summarize the full document.";
+      }
+      showAlert("Generation Failed", msg);
       setLoading(false, false);
-      switchToTab("config");
+
+      // Present error cleanly on preview tab instead of jumping back
+      const pErrorBox = document.getElementById("previewErrorBox");
+      const pErrorMsg = document.getElementById("previewErrorMsg");
+      if (pErrorBox && pErrorMsg) {
+        pErrorMsg.textContent = msg;
+        pErrorBox.classList.remove("hidden");
+      }
     }
   });
 
@@ -285,13 +399,34 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  let stageInterval = null;
   function setLoading(isLoading, hasData = false) {
+    if (stageInterval) {
+      clearInterval(stageInterval);
+      stageInterval = null;
+    }
+
     if (isLoading) {
       emptyState.classList.add("hidden");
       notesResult.classList.add("hidden");
       outputActions.classList.add("hidden");
+      const pErrorBox = document.getElementById("previewErrorBox");
+      if (pErrorBox) pErrorBox.classList.add("hidden");
       loadingState.classList.remove("hidden");
       btnSummarize.disabled = true;
+
+      const stages = [
+        ["Extracting Document Text...", "Reading and parsing text faithfully with Zero Hallucination."],
+        ["Analyzing Structure & Chapters...", "Detecting sections, terminology, and structural hierarchies."],
+        ["Calling NVIDIA NIM AI Model...", "Synthesizing strictly grounded summaries via NVIDIA Llama 3.2 NIM."],
+        ["Finalizing Study Notes...", "Formatting detailed takeaways, concepts, and review questions."]
+      ];
+      let stageIdx = 0;
+      updateLoadingStage(stages[0][0], stages[0][1]);
+      stageInterval = setInterval(() => {
+        stageIdx = (stageIdx + 1) % stages.length;
+        updateLoadingStage(stages[stageIdx][0], stages[stageIdx][1]);
+      }, 4500);
     } else {
       loadingState.classList.add("hidden");
       btnSummarize.disabled = !selectedFile;
@@ -308,8 +443,8 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function updateLoadingStage(title, desc) {
-    loadingStageTitle.textContent = title;
-    loadingStageDesc.textContent = desc;
+    if (loadingStageTitle) loadingStageTitle.textContent = title;
+    if (loadingStageDesc) loadingStageDesc.textContent = desc;
   }
 
   // --- Copy, Markdown Download, and PDF Export ---
@@ -419,4 +554,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
   }
-});
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initializeApp, { once: true });
+} else {
+  initializeApp();
+}

@@ -12,14 +12,25 @@
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <!-- html2pdf.js for client-side PDF export fallback -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-  <link rel="stylesheet" href="/static/style.css">
+  <!-- Detect app base path at runtime so assets resolve under any URL prefix -->
   <script>
-    if (window.location.protocol === 'file:') {
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = 'style.css';
-      document.head.appendChild(link);
-    }
+    (function () {
+      // Derive the base path from this very script tag or from window.location.
+      // Works at root ("/") and under any prefix (e.g. "/note-marker/").
+      // Strategy: strip "/static/index.html" or "/" suffix from pathname.
+      var path = window.location.pathname;
+      // Remove trailing filename if any
+      path = path.replace(/\/index\.html$/, "/");
+      // The base is everything up to (but not including) the trailing slash
+      // e.g. "/note-marker/" → "/note-marker"  or "/" → ""
+      var base = path.replace(/\/$/, "");
+      window.__BASE__ = base;  // e.g. "/note-marker" or ""
+    })();
+  </script>
+  <link rel="stylesheet" id="app-css">
+  <script>
+    // Resolve the CSS href now that __BASE__ is available
+    document.getElementById('app-css').href = window.__BASE__ + '/static/style.css?v=' + Date.now();
   </script>
 </head>
 <body>
@@ -86,46 +97,60 @@
             <!-- Field 1: Document Upload (Mandatory) -->
             <div class="form-group">
               <label class="form-group-label" for="fileInput">
-                DOCUMENT (PDF)<span class="form-required">*</span>
+                DOCUMENT (PDF, DOCX)<span class="form-required">*</span>
               </label>
 
-              <!-- Drag & Drop / File Input Zone -->
-              <div class="drop-zone" id="dropZone">
-                <input type="file" id="fileInput" accept=".pdf,.docx" class="file-input-hidden" />
+              <!-- Accessible File Input (visually hidden, always accessible) -->
+              <input 
+                type="file" 
+                id="fileInput" 
+                name="file"
+                accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" 
+                class="file-input-hidden" 
+              />
+
+              <!-- State A: Upload Drop Zone (shown when NO file selected) -->
+              <div class="drop-zone" id="dropZone" tabindex="0" role="region" aria-label="Document upload drop zone">
                 <div class="drop-zone-content" id="dropZonePrompt">
                   <div class="file-picker-styled">
-                    <button type="button" class="btn-choose-file" id="btnChooseFile">Choose File</button>
+                    <label for="fileInput" class="btn-choose-file" id="btnChooseFile" role="button" tabindex="0">Choose File</label>
                     <span class="file-status-label" id="fileStatusLabel">No file chosen</span>
                   </div>
                   <p class="drop-text-hint">or drag &amp; drop document here (PDF, DOCX up to 50MB)</p>
                 </div>
+              </div>
 
-                <!-- File Selected Preview -->
-                <div class="file-card hidden" id="fileCard">
+              <!-- State B: File Selected Card (shown when file IS selected) -->
+              <div class="file-card hidden" id="fileCard">
+                <div class="file-card-info">
                   <div class="file-icon" id="fileCardIcon">PDF</div>
                   <div class="file-details">
                     <span class="file-name" id="fileNameDisplay">document.pdf</span>
                     <span class="file-meta" id="fileMetaDisplay">1.2 MB</span>
+                    <span class="file-status-tag">✓ Document selected &amp; ready</span>
                   </div>
+                </div>
+                <div class="file-card-actions">
+                  <label for="fileInput" class="btn-change-file" id="btnChangeFile" role="button" tabindex="0" title="Select a different file">Change</label>
                   <button type="button" class="remove-file-btn" id="removeFileBtn" title="Remove file">✕</button>
                 </div>
               </div>
             </div>
 
-            <!-- Field 2: Specific Chapter (Mandatory / Optional scope) -->
+            <!-- Field 2: Specific Chapter (Optional scope) -->
             <div class="form-group" style="margin-top: 20px;">
               <label class="form-group-label" for="manualChapterInput">
-                SPECIFIC CHAPTER<span class="form-required">*</span>
+                SPECIFIC CHAPTER <span style="font-size:0.7rem; font-weight:normal; text-transform:none; color:var(--vts-text-muted);">(Optional)</span>
               </label>
               <input 
                 type="text" 
                 inputmode="numeric"
                 id="manualChapterInput" 
                 class="input-text" 
-                placeholder="1" 
-                value="1" 
+                placeholder="Leave blank to summarize entire document (or enter e.g. 1, 2)" 
+                value="" 
               />
-              <p class="input-helper">Please enter chapter numbers only (e.g. 1 or 1, 2). Leave blank to summarize entire book.</p>
+              <p class="input-helper">Leave blank to summarize the entire document. Enter numbers only (e.g. 1 or 1, 2) to focus on specific chapters.</p>
             </div>
           </div>
         </section>
@@ -269,6 +294,16 @@
             </div>
           </div>
 
+          <!-- Generation Error State (shown in preview tab on failure) -->
+          <div class="empty-state hidden" id="previewErrorBox" style="border: 1.5px solid var(--vts-danger); background: #fff5f5;">
+            <div class="empty-icon" style="color:var(--vts-danger);">⚠️</div>
+            <h3 id="previewErrorTitle" style="color:var(--vts-danger);">Generation Failed</h3>
+            <p id="previewErrorMsg" style="max-width: 580px; margin: 0 auto; color: var(--vts-text-primary); font-size: 0.88rem; line-height: 1.5;"></p>
+            <button type="button" class="btn-vts-secondary" id="btnRetryConfig" style="margin-top: 18px; border-color: var(--vts-navy); color: var(--vts-navy); font-weight: 700;">
+              <span>← Back to Configuration</span>
+            </button>
+          </div>
+
           <!-- Rendered Notes Container -->
           <div class="notes-result hidden" id="notesResult">
             <!-- Printable Container for PDF Export -->
@@ -303,13 +338,11 @@
   <!-- Toast Notification -->
   <div class="toast hidden" id="toast">Copied to clipboard!</div>
 
-  <script src="/static/app.js?v=20261006_v6"></script>
+  <script id="app-js"></script>
   <script>
-    if (window.location.protocol === 'file:') {
-      const scr = document.createElement('script');
-      scr.src = 'app.js';
-      document.body.appendChild(scr);
-    }
+    // Load app.js with cache-bust param, resolved under the runtime base path
+    var s = document.getElementById('app-js');
+    s.src = window.__BASE__ + '/static/app.js?v=' + Date.now();
   </script>
 </body>
 </html>

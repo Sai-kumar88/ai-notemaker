@@ -230,3 +230,47 @@ def test_export_pdf_endpoint():
     assert "AI STUDY NOTES & GUIDE.pdf" in response.headers["content-disposition"]
 
 
+def test_summarize_rejects_empty_file():
+    files = {"file": ("empty.pdf", b"", "application/pdf")}
+    response = client.post("/api/v1/notes/summarize", files=files)
+    assert response.status_code == 400
+    data = response.json()
+    assert data["success"] is False
+    assert "empty" in data["error"]["message"].lower()
+
+
+def test_detect_chapters_rejects_empty_file():
+    files = {"file": ("empty.docx", b"", "application/vnd.openxmlformats-officedocument.wordprocessingml.document")}
+    response = client.post("/api/v1/notes/detect-chapters", files=files)
+    assert response.status_code == 400
+    data = response.json()
+    assert data["success"] is False
+    assert "empty" in data["error"]["message"].lower()
+
+
+def test_summarize_rejects_unsupported_extension():
+    files = {"file": ("notes.txt", b"some plain text notes", "text/plain")}
+    response = client.post("/api/v1/notes/summarize", files=files)
+    assert response.status_code == 400
+    data = response.json()
+    assert data["success"] is False
+    assert "unsupported" in data["error"]["message"].lower()
+
+
+def test_detect_chapters_rejects_unsupported_extension():
+    files = {"file": ("script.py", b"print('hello')", "text/x-python")}
+    response = client.post("/api/v1/notes/detect-chapters", files=files)
+    assert response.status_code == 400
+    data = response.json()
+    assert data["success"] is False
+    assert "unsupported" in data["error"]["message"].lower()
+
+
+def test_filename_with_traversal_is_sanitized():
+    files = {"file": ("../../malicious/test.docx", b"", "application/vnd.openxmlformats-officedocument.wordprocessingml.document")}
+    response = client.post("/api/v1/notes/detect-chapters", files=files)
+    # Rejects empty file cleanly instead of failing on path traversal
+    assert response.status_code == 400
+
+
+

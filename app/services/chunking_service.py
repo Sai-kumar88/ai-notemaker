@@ -15,7 +15,7 @@ class ChunkingService:
     Splits long documents along natural linguistic boundaries (paragraphs, sentences, words)
     without arbitrary magic numbers or hardcoded thresholds.
     """
-
+ 
     # Structured priority hierarchy for breakpoint detection:
     # Each entry defines: (regex_pattern, name, post_match_offset)
     BOUNDARY_RULES: Tuple[Tuple[re.Pattern, str], ...] = (

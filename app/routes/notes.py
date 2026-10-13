@@ -1,13 +1,17 @@
-import json
+"""
+app/routes/notes.py
+
+Production-ready API endpoints for document note making, summarization,
+chapter detection, and vector PDF export.
+"""
 import logging
 import uuid
-import shutil
 from pathlib import Path
 from typing import List, Optional, Union
 
-import re
 from fastapi import APIRouter, File, Form, UploadFile, HTTPException, status
 from fastapi.responses import Response
+
 from app.config import settings
 from app.schemas.note_schema import (
     SummaryResponse,
@@ -24,64 +28,25 @@ from app.services.document_service import (
 from app.services.chapter_service import ChapterService, ChapterNotFoundError
 from app.services.summary_service import SummaryService
 from app.services.nvidia_service import NvidiaAuthError, NvidiaRateLimitError, NvidiaServiceError
+from app.utils.chapter_parser import parse_chapters_input, IGNORED_CHAPTER_INPUTS
+from app.utils.file_utils import sanitize_filename, is_allowed_extension
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/notes", tags=["Notes & Summarization"])
 
-IGNORED_CHAPTER_INPUTS = frozenset({
-    "string", "none", "null", "all", "full", "[]", '""', "''", "-", "undefined"
-})
-
-def parse_chapters_input(chapters_raw: Optional[Union[str, List[str]]]) -> Optional[List[str]]:
-    """
-    Parses optional chapter input from various frontend formats.
-    If omitted, empty, or dummy default (e.g. Swagger's 'string'), returns None,
-    which triggers full document summarization without asking for chapter numbers.
-    """
-    if not chapters_raw:
-        return None
-
-    if isinstance(chapters_raw, list):
-        parsed = [
-            str(c).strip() for c in chapters_raw
-            if str(c).strip() and str(c).strip().lower() not in IGNORED_CHAPTER_INPUTS
-        ]
-        return parsed if parsed else None
-
-    raw_str = chapters_raw.strip()
-    if not raw_str or raw_str.lower() in IGNORED_CHAPTER_INPUTS:
-        return None
-
-    # Try JSON parsing first
-    if raw_str.startswith("[") and raw_str.endswith("]"):
-        try:
-            parsed_json = json.loads(raw_str)
-            if isinstance(parsed_json, list):
-                result = [
-                    str(x).strip() for x in parsed_json
-                    if str(x).strip() and str(x).strip().lower() not in IGNORED_CHAPTER_INPUTS
-                ]
-                return result if result else None
-        except Exception:
-            pass
-
-    # Comma-separated fallback
-    items = [
-        c.strip() for c in raw_str.split(",")
-        if c.strip() and c.strip().lower() not in IGNORED_CHAPTER_INPUTS
-    ]
-    return items if items else None
 
 @router.post(
     "/summarize",
     response_model=SummaryResponse,
     responses={
-        400: {"model": ErrorResponse, "description": "Invalid file or parameters"},
+        400: {"model": ErrorResponse, "description": "Invalid file, empty payload, or unsupported format"},
         404: {"model": ErrorResponse, "description": "Requested chapter not found in document"},
         413: {"model": ErrorResponse, "description": "File exceeds size limit"},
         422: {"model": ErrorResponse, "description": "Document parsing error"},
-        500: {"model": ErrorResponse, "description": "Server or NVIDIA API error"},
+        429: {"model": ErrorResponse, "description": "NVIDIA API rate limit exceeded"},
+        500: {"model": ErrorResponse, "description": "Internal server or NVIDIA API error"},
+        502: {"model": ErrorResponse, "description": "Upstream NVIDIA service failure"},
     },
     summary="Upload document and generate strictly faithful notes"
 )
@@ -95,21 +60,21 @@ async def summarize_document(
     """
     Uploads a PDF or DOCX file, extracts text, optionally filters by requested chapters,
     splits into chunks if large, and produces a strictly faithful summary via NVIDIA NIM API.
-    Temporary files are guaranteed to be cleaned up after processing.
+    Guarantees zero hallucination and safe cleanup of uploaded temporary files.
     """
-    if not file.filename:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No filename provided.")
+    clean_filename = sanitize_filename(file.filename)
+    if not clean_filename:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No valid filename provided.")
 
-    # Validate file extension
-    ext = Path(file.filename).suffix.lower()
-    if ext not in settings.allowed_extensions_set:
+    # Validate file extension against environment configuration
+    if not is_allowed_extension(clean_filename, settings.allowed_extensions_set):
+        allowed_str = ", ".join(settings.allowed_extensions)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Unsupported file format '{ext}'. Allowed formats: {', '.join(settings.allowed_extensions)}"
+            detail=f"Unsupported file format '{Path(clean_filename).suffix.lower()}'. Allowed formats: {allowed_str}"
         )
 
-    # Save to a temporary file safely
-    temp_filename = f"upload_{uuid.uuid4().hex}_{Path(file.filename).name}"
+    temp_filename = f"upload_{uuid.uuid4().hex}_{clean_filename}"
     temp_path = settings.upload_path / temp_filename
     bytes_written = 0
 
@@ -124,13 +89,19 @@ async def summarize_document(
                     )
                 buffer.write(chunk)
 
-        # Parse chapter numbers
+        if bytes_written == 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Uploaded file is empty (0 bytes)."
+            )
+
+        # Parse requested chapter numbers (if any)
         requested_chapters = parse_chapters_input(chapters)
 
         # Execute end-to-end summarization
         response = await SummaryService.process_document(
             file_path=temp_path,
-            original_filename=file.filename,
+            original_filename=clean_filename,
             requested_chapters=requested_chapters
         )
         return response
@@ -138,7 +109,7 @@ async def summarize_document(
     except HTTPException:
         raise
     except ChapterNotFoundError as e:
-        logger.warning("Chapter not found: %s", str(e))
+        logger.warning("Chapter not found in document %s: %s", clean_filename, str(e))
         clean_missing = ", ".join(str(c) for c in e.missing_chapters)
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -151,7 +122,7 @@ async def summarize_document(
         logger.warning("Unsupported file type: %s", str(e))
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except DocumentExtractionError as e:
-        logger.error("Document extraction error: %s", str(e))
+        logger.error("Document extraction error on %s: %s", clean_filename, str(e))
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e))
     except NvidiaAuthError as e:
         logger.error("NVIDIA authentication error: %s", str(e))
@@ -166,7 +137,7 @@ async def summarize_document(
         logger.exception("Unexpected error in summarize_document: %s", str(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"An unexpected error occurred: {str(e)}"
+            detail=f"An unexpected error occurred while processing the document: {str(e)}"
         )
     finally:
         # Guarantee safe cleanup of uploaded file
@@ -177,22 +148,37 @@ async def summarize_document(
             except Exception as clean_err:
                 logger.warning("Failed to clean up temporary file %s: %s", temp_path, clean_err)
 
+
 @router.post(
     "/detect-chapters",
     response_model=DetectChaptersResponse,
+    responses={
+        400: {"model": ErrorResponse, "description": "Invalid file, empty payload, or unsupported format"},
+        422: {"model": ErrorResponse, "description": "Document text extraction failure"},
+        500: {"model": ErrorResponse, "description": "Server processing failure"}
+    },
     summary="Detect all chapters available in a document without generating a summary"
 )
 async def detect_document_chapters(
     file: UploadFile = File(..., description="Document file (.pdf or .docx)")
 ):
     """
-    Extracts text and lists all detected chapters with page numbers and word counts.
-    Allows the frontend to show a chapter selector to the user.
+    Extracts text and identifies all detected chapters with page numbers and word counts.
+    Allows frontend clients to present a structured chapter picker before summarization.
     """
-    if not file.filename:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No filename provided.")
+    clean_filename = sanitize_filename(file.filename)
+    if not clean_filename:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No valid filename provided.")
 
-    temp_filename = f"detect_{uuid.uuid4().hex}_{Path(file.filename).name}"
+    # Validate file extension
+    if not is_allowed_extension(clean_filename, settings.allowed_extensions_set):
+        allowed_str = ", ".join(settings.allowed_extensions)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Unsupported file format '{Path(clean_filename).suffix.lower()}'. Allowed formats: {allowed_str}"
+        )
+
+    temp_filename = f"detect_{uuid.uuid4().hex}_{clean_filename}"
     temp_path = settings.upload_path / temp_filename
     bytes_written = 0
 
@@ -207,15 +193,21 @@ async def detect_document_chapters(
                     )
                 buffer.write(chunk)
 
+        if bytes_written == 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Uploaded file is empty (0 bytes)."
+            )
+
         document = DocumentService.extract_text_from_file(
             file_path=temp_path,
-            original_filename=file.filename
+            original_filename=clean_filename
         )
         detected_list = ChapterService.get_detected_chapters_schema(document)
 
         return DetectChaptersResponse(
             success=True,
-            filename=file.filename,
+            filename=clean_filename,
             total_chapters_detected=len(detected_list),
             chapters=detected_list
         )
@@ -223,9 +215,10 @@ async def detect_document_chapters(
     except HTTPException:
         raise
     except DocumentExtractionError as e:
+        logger.error("Document extraction error during chapter detection: %s", str(e))
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e))
     except Exception as e:
-        logger.exception("Error detecting chapters: %s", str(e))
+        logger.exception("Error detecting chapters in %s: %s", clean_filename, str(e))
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
     finally:
         if temp_path.exists():
@@ -234,13 +227,15 @@ async def detect_document_chapters(
             except Exception as clean_err:
                 logger.warning("Failed to clean up temporary file %s: %s", temp_path, clean_err)
 
+
 @router.get(
     "/info",
     summary="Get current server configuration and limits"
 )
 async def get_service_info():
     """
-    Returns non-sensitive configuration to allow the frontend to validate client-side limits.
+    Returns non-sensitive configuration parameters to allow client interfaces
+    to validate file size and format limits prior to upload.
     """
     return {
         "allowed_extensions": settings.allowed_extensions,
@@ -259,14 +254,14 @@ async def get_service_info():
 )
 async def export_pdf(payload: PdfExportRequest):
     """
-    Renders formatted notes into a multi-page vector A4 PDF using PyMuPDF typography engine.
+    Renders formatted notes into a multi-page vector A4 PDF using the PyMuPDF typography engine.
     Guarantees no broken sentences or cut words across page boundaries.
     """
     if not PdfExportService.is_available():
         logger.warning("PyMuPDF engine not available on this system. Client-side PDF fallback should be used.")
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Server-side PDF engine (PyMuPDF) is unavailable due to missing Visual C++ runtime. Using client PDF export."
+            detail="Server-side PDF engine (PyMuPDF) is unavailable. Please use client-side PDF export."
         )
 
     try:

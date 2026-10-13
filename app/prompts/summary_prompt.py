@@ -34,12 +34,12 @@ CRITICAL INSTRUCTIONS:
 """
 
 CHUNK_SUMMARY_SYSTEM_PROMPT = """You are an expert academic note maker.
-Your task is to summarize this specific section of a document into detailed, structured key points.
+Your task is to extract high-density, structured study points from this specific section of a document.
 You must adhere STRICTLY to the provided text:
 - Include ONLY information explicitly stated in this text chunk.
 - Do NOT introduce external knowledge, assumptions, or hallucinations.
-- Retain exact facts, definitions, findings, formulas, and figures with thorough explanations.
-- Summarize clearly with bullet points and clear conceptual definitions.
+- Extract exact definitions, formulas, key facts, data, and conceptual points in dense bullet points.
+- Do NOT include conversational filler, introductory pleasantries, or meta-commentary. Jump straight to the structured notes.
 """
 
 COMBINE_SUMMARIES_SYSTEM_PROMPT = """You are an expert academic note maker.
@@ -84,8 +84,8 @@ def build_chunk_summary_prompt(chunk_text: str, chunk_index: int, total_chunks: 
 <<<END SOURCE CHUNK>>>
 
 Instructions:
-Summarize the key information, arguments, definitions, and facts present in this chunk in detail.
-Do NOT invent or extrapolate anything beyond this chunk.
+Extract the key facts, definitions, principles, formulas, and arguments from this chunk in dense, direct bullet points.
+Do NOT invent or extrapolate anything beyond this chunk. Output only the structured factual notes.
 """
 
 def build_combine_prompt(chunk_summaries: list[str]) -> str:
