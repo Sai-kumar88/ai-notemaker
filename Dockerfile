@@ -73,7 +73,8 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
 #   - --forwarded-allow-ips '*': accept forwarded headers from any upstream
 #   - --root-path: SCRIPT_NAME prefix for reverse-proxy subpath deployment
 #   - --timeout-keep-alive: keep connections open longer for upload requests
-CMD uvicorn app.main:app \
+CMD LOG_LVL=$(echo "${LOG_LEVEL:-info}" | tr '[:upper:]' '[:lower:]') && \
+    exec uvicorn app.main:app \
     --host "${SERVER_HOST}" \
     --port "${SERVER_PORT}" \
     --workers "${WORKERS}" \
@@ -81,5 +82,5 @@ CMD uvicorn app.main:app \
     --forwarded-allow-ips '*' \
     --root-path "${APPLICATION_ROOT}" \
     --timeout-keep-alive 65 \
-    --log-level "${LOG_LEVEL,,}" \
+    --log-level "${LOG_LVL}" \
     --access-log
